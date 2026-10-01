@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="24" fill="#009FE3"/>
+  <circle cx="100" cy="80" r="38" fill="#FFFFFF"/>
+  <path d="M 80 80 Q 100 55 120 80 Q 100 105 80 80" fill="#E65100"/>
+  <text x="100" y="148" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="3">BICEC</text>
+</svg>

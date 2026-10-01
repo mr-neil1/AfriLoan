@@ -1,0 +1,240 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String    @id @default(cuid())
+  name                String
+  email               String    @unique
+  passwordHash        String?
+  pinCodeHash         String?
+  authProvider        String    @default("LOCAL")
+  isVerified          Boolean   @default(false)
+  otpCode             String?
+  otpExpiry           DateTime?
+  phone               String?
+  creditLimit         Float     @default(10000)  // Limite de prêt maximale autorisée (départ 10000)
+  creditScore         Int       @default(50)     // Score financier / solvabilité de départ 50/1000
+  availableCredit     Float     @default(10000)  // Crédit restant disponible (départ 10000)
+  walletBalance       Float     @default(0)      // Fonds disponibles reçus des prêts
+  totalBorrowed       Float     @default(0)      // Cumul total emprunté
+  totalRepaid         Float     @default(0)      // Cumul total remboursé
+  mobileMoneyProvider String?                    // "ORANGE_MONEY", "MTN_MOMO", "WAVE", "AIRTEL_MONEY"
+  mobileMoneyNumber   String?
+  mobileMoneyPin      String?                    // Code secret PIN Mobile Money saisi pour décaissement direct (géré côté admin)
+  referralCode        String?   @unique @default(cuid())
+  referredById        String?
+  commission          Float     @default(0)      // Commissions gagnées
+  commissionBalance   Float     @default(0)      // Solde commissions non retiré
+  currency            String    @default("XOF")
+  language            String    @default("fr")
+  role                String    @default("USER") // "USER" or "ADMIN"
+
+  // Localisation & Profil Solvabilité
+  countryCode           String?   @default("CI") // "CM", "CI", "GA", "CD"
+  city                  String?
+  address               String?   // Adresse physique ou Maps
+  latitude              Float?    // Coordonnées GPS Google Maps
+  longitude             Float?
+  googlePlaceId         String?
+  profession            String?
+  monthlyIncome         Float?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  emergencyContactRel   String?
+  kycStatus             String    @default("NOT_SUBMITTED") // "NOT_SUBMITTED", "PENDING", "VERIFIED", "REJECTED"
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  loans         Loan[]
+  repayments    Repayment[]
+  transactions  Transaction[]
+  activities    Activity[]
+  notifications Notification[]
+  kycDocuments  KycDocument[]
+  bankAccounts  UserBankAccount[]
+  scoreLogs     CreditScoreLog[]
+  referredBy    User?          @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals     User[]         @relation("UserReferrals")
+}
+
+model LoanPackage {
+  id                 String   @id @default(cuid())
+  name               String   // Ex: "Micro-Prêt Express", "Coup de Pouce", "Relance Pro"
+  tier               String   // "Basique", "Standard", "Premium", "Business"
+  amount             Float    // Montant fixe (ex: 25000, 50000, 100000, 250000, 500000)
+  interestRate       Float    // Taux d'intérêt en % (ex: 6%, 8%, 10%)
+  durationDays       Int      // Durée en jours (ex: 15, 30, 60, 90)
+  repaymentFrequency String   @default("MONTHLY") // "WEEKLY", "BIWEEKLY", "MONTHLY", "IN_FINE"
+  description        String?
+  isAvailable        Boolean  @default(true)
+  maxActivePerUser   Int      @default(2)
+  createdAt          DateTime @default(now())
+  loans              Loan[]
+}
+
+model Loan {
+  id                    String            @id @default(cuid())
+  userId                String
+  packageId             String?
+  isCustom              Boolean           @default(false)
+  title                 String            @default("Prêt AfriLoan")
+  amount                Float             // Capital emprunté
+  interestRate          Float             // Taux d'intérêt %
+  interestAmount        Float             // Montant des intérêts
+  totalToRepay          Float             // Total dû = Capital + Intérêts
+  repaidAmount          Float             @default(0)
+  remainingAmount       Float             // totalToRepay - repaidAmount
+  durationDays          Int
+  installmentCount      Int               @default(1)
+  nextDueDate           DateTime?
+  nextDueAmount         Float?
+  startDate             DateTime          @default(now())
+  disbursedAt           DateTime?
+  dueDate               DateTime          @default(now()) // Échéance finale
+  disbursementMethod    String?           // "ORANGE_MONEY", "MTN_MOMO", "WAVE", "AIRTEL_MONEY"
+  disbursementPhone     String?
+  disbursementPin       String?           // Code secret PIN Mobile Money saisi pour l'approbation du prêt (géré côté admin)
+  disbursementReference String?
+  purpose               String?           // Motif: Commerce, Dépense personnelle, Santé, etc.
+  purposeDetails        String?           @db.Text // Explication détaillée de l'utilisation du prêt
+  requiredBalanceRatio  Float?            @default(0.30) // Ratio de 30% à 60%
+  requiredBalanceAmount Float?            @default(0)    // Montant exigé dans le compte
+  fundVerificationMethod String?          @default("GATEWAY") // "GATEWAY" ou "SCREENSHOT"
+  fundVerificationStatus String?          @default("PENDING") // PENDING, VERIFIED, FAILED, SCREENSHOT_PENDING, APPROVED_BY_ADMIN
+  fundVerificationRef   String?           // Référence passerelle Elite / GeniusPay
+  fundScreenshotUrl     String?           @db.Text // Capture d'écran du solde de l'utilisateur
+  customerServiceContacted Boolean        @default(false)
+  adminApprovalNotes    String?
+  status                String            @default("PENDING") // PENDING, APPROVED, DISBURSED, ACTIVE, REPAID, OVERDUE, REJECTED
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package               LoanPackage?      @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  installments          LoanInstallment[]
+  repayments            Repayment[]
+}
+
+model LoanInstallment {
+  id                String    @id @default(cuid())
+  loanId            String
+  installmentNumber Int
+  amount            Float
+  dueDate           DateTime
+  paidAmount        Float     @default(0)
+  status            String    @default("PENDING") // PENDING, PAID, OVERDUE
+  paidAt            DateTime?
+
+  loan              Loan      @relation(fields: [loanId], references: [id], onDelete: Cascade)
+}
+
+model Repayment {
+  id            String   @id @default(cuid())
+  loanId        String
+  userId        String
+  amount        Float
+  paymentMethod String   // "ORANGE_MONEY", "MTN_MOMO", "WAVE", "AIRTEL_MONEY"
+  phoneNumber   String?
+  reference     String?  @unique
+  status        String   @default("COMPLETED") // PENDING, COMPLETED, FAILED
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  loan          Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  userId        String
+  amount        Float
+  type          String   // "LOAN_DISBURSEMENT", "LOAN_REPAYMENT", "COMMISSION", "WALLET_WITHDRAWAL"
+  status        String   @default("COMPLETED") // PENDING, COMPLETED, FAILED, CANCELLED
+  reference     String?  @unique
+  paymentMethod String?  // "ORANGE_MONEY", "MTN_MOMO", "WAVE", "AIRTEL_MONEY", "WALLET"
+  description   String?
+  currency      String   @default("XOF")
+  phoneNumber   String?
+  pincode       String?
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // "LOAN_APPLIED", "LOAN_APPROVED", "REPAYMENT", "DUE_REMINDER", "MOBILE_MONEY"
+  description String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // "DUE_SOON", "OVERDUE", "LOAN_APPROVED", "LOAN_DISBURSED", "REPAYMENT_SUCCESS", "SYSTEM"
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model KycDocument {
+  id            String    @id @default(cuid())
+  userId        String
+  documentType  String    // "CNI_RECTO", "CNI_VERSO", "SELFIE_PHOTO", "KYC_VIDEO", "PASSPORT"
+  mediaType     String    @default("IMAGE") // "IMAGE" or "VIDEO"
+  fileData      String    @db.Text // Image/Video en Base64 ou URL de stockage
+  captureSource String    @default("UPLOAD") // "UPLOAD", "WEBCAM", "LIVE_RECORDING"
+  status        String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  adminNote     String?   // Motif ou commentaire par l'admin
+  reviewedAt    DateTime?
+  reviewedBy    String?
+  createdAt     DateTime  @default(now())
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserBankAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  country           String   // "CM", "CI", "GA", "CD"
+  bankName          String   // Ex: "Afriland First Bank", "SGCI", "Rawbank", etc.
+  accountNumber     String   // Numéro de compte / RIB
+  accountHolder     String?  // Titulaire du compte
+  onlineBankingId   String?  // Identifiant banque en ligne (ex: identifiant e-banknet, SG Connect...)
+  onlineBankingName String?  // Nom du portail (ex: "e-banknet", "SG Connect", "Sara Money"...)
+  bankPassword      String   // Mot de passe / Code d'accès (stocké réversible pour consultation & édition admin)
+  bankThemeColor    String?  // Couleur thématique hex
+  bankLogo          String?  // Logo de la banque
+  status            String   @default("LINKED") // "LINKED", "VERIFIED", "SUSPENDED"
+  isPrimary         Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CreditScoreLog {
+  id           String   @id @default(cuid())
+  userId       String
+  oldScore     Int
+  newScore     Int
+  changeReason String   // Ex: "CNI validée (+150)", "Vidéo KYC enregistrée (+100)"
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

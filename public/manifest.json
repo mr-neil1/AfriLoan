@@ -1,0 +1,21 @@
+{
+  "name": "AfriLoan",
+  "short_name": "AfriLoan",
+  "description": "Plateforme africaine de prêt en ligne sécurisée - Vos projets, notre priorité.",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#064E29",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

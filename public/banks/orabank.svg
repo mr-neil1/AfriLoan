@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" rx="24" fill="#5C2D91"/>
+  <circle cx="100" cy="80" r="36" fill="#8DC63F"/>
+  <text x="100" y="92" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="900" fill="#FFFFFF" text-anchor="middle">O</text>
+  <text x="100" y="148" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="900" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">ORABANK</text>
+</svg>
