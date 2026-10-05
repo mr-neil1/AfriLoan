@@ -57,6 +57,17 @@ export default function BankLinkModal({
   const [error, setError] = useState<string | null>(null);
   const [successInfo, setSuccessInfo] = useState<any | null>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   const countryConfig = getCountryConfig(selectedCountry);
   const banks = countryConfig.banks;
   const selectedBank: BankInfo | undefined = banks.find((b) => b.id === selectedBankId || b.name === selectedBankId);
@@ -145,7 +156,7 @@ export default function BankLinkModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-3 sm:p-4 animate-fadeIn">
       <div 
         className="w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] bg-white transition-all duration-300"
         style={
@@ -157,7 +168,7 @@ export default function BankLinkModal({
         
         {/* Dynamic Header with Bank Gradient */}
         <div 
-          className="p-5 border-b border-slate-100 flex items-center justify-between transition-all duration-300"
+          className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between transition-all duration-300"
           style={
             step === "SECURITY_AUTH" && selectedBank
               ? { 
@@ -167,9 +178,9 @@ export default function BankLinkModal({
               : { backgroundColor: "#F8FAFC" }
           }
         >
-          <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
             {step === "SECURITY_AUTH" && selectedBank ? (
-              <div className="w-12 h-12 rounded-2xl bg-white p-1.5 shadow-md border border-white/30 flex items-center justify-center overflow-hidden shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-white p-1.5 shadow-md border border-white/30 flex items-center justify-center overflow-hidden shrink-0">
                 {selectedBank.logoUrl ? (
                   <img 
                     src={selectedBank.logoUrl} 
@@ -186,18 +197,18 @@ export default function BankLinkModal({
                 )}
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-[#064E29] flex items-center justify-center font-bold">
-                <Building2 className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-100 text-[#064E29] flex items-center justify-center font-bold shrink-0">
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             )}
 
-            <div>
-              <h2 className={`text-base font-black ${step === "SECURITY_AUTH" ? "text-white" : "text-slate-900"}`}>
+            <div className="min-w-0">
+              <h2 className={`text-sm sm:text-base font-black truncate ${step === "SECURITY_AUTH" ? "text-white" : "text-slate-900"}`}>
                 {step === "SECURITY_AUTH" && selectedBank 
                   ? selectedBank.name 
                   : "Liaison de Compte Bancaire"}
               </h2>
-              <p className={`text-[11px] font-semibold ${step === "SECURITY_AUTH" ? "text-white/90" : "text-slate-500"}`}>
+              <p className={`text-[10px] sm:text-[11px] font-semibold truncate ${step === "SECURITY_AUTH" ? "text-white/90" : "text-slate-500"}`}>
                 {step === "SECURITY_AUTH" && selectedBank 
                   ? `Portail Sécurisé ${selectedBank.onlineBankingName}` 
                   : "Connexion officielle certifiée AfriLoan"}
@@ -207,7 +218,7 @@ export default function BankLinkModal({
 
           <button 
             onClick={onClose}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors shrink-0 ml-2 ${
               step === "SECURITY_AUTH"
                 ? "bg-white/20 hover:bg-white/30 text-white"
                 : "bg-slate-200/70 hover:bg-slate-300 text-slate-700"
@@ -218,7 +229,7 @@ export default function BankLinkModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-4">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-3.5 sm:space-y-4">
 
           {/* Success State */}
           {successInfo ? (
@@ -518,7 +529,7 @@ export default function BankLinkModal({
               </div>
 
               {/* Controls */}
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => {
@@ -526,16 +537,16 @@ export default function BankLinkModal({
                     setError(null);
                   }}
                   disabled={isLoading}
-                  className="px-4 py-3.5 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all"
+                  className="w-full sm:w-auto px-4 py-3 sm:py-3.5 border border-slate-200 hover:bg-slate-50 active:scale-[0.98] text-slate-700 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all min-h-[44px]"
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="w-4 h-4 shrink-0" />
                   <span>Modifier</span>
                 </button>
 
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex-1 py-3.5 text-white font-black text-xs rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 hover:opacity-95 hover:scale-[1.01]"
+                  className="w-full sm:flex-1 py-3.5 text-white font-black text-xs rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 hover:opacity-95 active:scale-[0.98] min-h-[44px]"
                   style={{
                     background: selectedBank?.themeGradient || selectedBank?.themeColor || "#064E29",
                     color: selectedBank?.textColor || "#FFFFFF"
@@ -545,8 +556,8 @@ export default function BankLinkModal({
                     <span className="loading loading-spinner loading-sm"></span>
                   ) : (
                     <>
-                      <Lock className="w-4 h-4" />
-                      <span>Confirmer & Authentifier mon Compte</span>
+                      <Lock className="w-4 h-4 shrink-0" />
+                      <span className="truncate">Confirmer & Authentifier mon Compte</span>
                     </>
                   )}
                 </button>

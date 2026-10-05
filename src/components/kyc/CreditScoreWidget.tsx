@@ -40,32 +40,32 @@ export default function CreditScoreWidget({
   const percentage = Math.min(100, Math.round((score / 1000) * 100));
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
+    <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-5 sm:space-y-6">
       
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#064E29] to-[#0A5C36] text-white flex items-center justify-center shadow-md">
-            <Award className="w-6 h-6" />
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-[#064E29] to-[#0A5C36] text-white flex items-center justify-center shadow-md shrink-0">
+            <Award className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-black text-slate-900">Score de Solvabilité Dynamique</h3>
-              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${tier.bg} ${tier.color} ${tier.border}`}>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h3 className="text-sm sm:text-base font-black text-slate-900">Score de Solvabilité Dynamique</h3>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${tier.bg} ${tier.color} ${tier.border}`}>
                 {tier.name}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
               Évolue en temps réel dès que vous complétez vos vérifications de sécurité.
             </p>
           </div>
         </div>
 
         {/* Big numbers */}
-        <div className="text-left sm:text-right">
-          <div className="text-3xl font-black text-[#064E29] tracking-tight">
+        <div className="text-left sm:text-right pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+          <div className="text-2xl sm:text-3xl font-black text-[#064E29] tracking-tight">
             {score}
-            <span className="text-sm font-semibold text-slate-400 ml-1">/ 1000</span>
+            <span className="text-xs sm:text-sm font-semibold text-slate-400 ml-1">/ 1000</span>
           </div>
           <div className="text-xs font-bold text-amber-700 mt-0.5">
             Plafond débloqué : {creditLimit.toLocaleString("fr-FR")} {currencySymbol}
@@ -86,16 +86,16 @@ export default function CreditScoreWidget({
           />
         </div>
         <div className="flex justify-between text-[10px] text-slate-400 font-semibold px-0.5">
-          <span>Départ 50 pts (10 000 FCFA)</span>
-          <span>500 pts (200 000 FCFA)</span>
-          <span>1000 pts (2 000 000 FCFA)</span>
+          <span>50 pts (10 000 {currencySymbol})</span>
+          <span>500 pts (200 000 {currencySymbol})</span>
+          <span>1000 pts (2M {currencySymbol})</span>
         </div>
       </div>
 
       {/* Criteria Breakdown Checklist */}
       {breakdown && breakdown.criteria && (
         <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
             <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">
               Actions pour augmenter votre score & plafond
             </h4>

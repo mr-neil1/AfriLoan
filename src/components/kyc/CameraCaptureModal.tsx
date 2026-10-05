@@ -109,6 +109,18 @@ export default function CameraCaptureModal({
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
+  // Verrouiller le scroll d'arrière-plan sur mobile/desktop lorsque le modal est actif
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       setCapturedData(null);
@@ -243,60 +255,60 @@ export default function CameraCaptureModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
-      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-3 sm:p-4 animate-fadeIn">
+      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh]">
         
         {/* Top Header */}
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-[#064E29] flex items-center justify-center">
-              {isVideoMode ? <Video className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-100 text-[#064E29] flex items-center justify-center shrink-0">
+              {isVideoMode ? <Video className="w-4 h-4 sm:w-5 sm:h-5" /> : <Camera className="w-4 h-4 sm:w-5 sm:h-5" />}
             </div>
-            <div>
-              <h2 className="text-base font-black text-slate-900">{getDocTitle()}</h2>
-              <p className="text-[11px] font-semibold text-slate-500">Vérification de sécurité KYC AfriLoan</p>
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-black text-slate-900 truncate">{getDocTitle()}</h2>
+              <p className="text-[10px] sm:text-[11px] font-semibold text-slate-500 truncate">Vérification de sécurité KYC AfriLoan</p>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-200/70 hover:bg-slate-300 text-slate-700 flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-full bg-slate-200/70 hover:bg-slate-300 text-slate-700 flex items-center justify-center transition-colors shrink-0 ml-2"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-4">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-3.5 sm:space-y-4">
           
           {/* Instructions banner */}
-          <div className="p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-[#064E29] shrink-0 mt-0.5" />
-            <p className="text-xs text-emerald-950 leading-relaxed font-medium">
+          <div className="p-3 sm:p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl flex items-start gap-2.5 sm:gap-3">
+            <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-[#064E29] shrink-0 mt-0.5" />
+            <p className="text-[11px] sm:text-xs text-emerald-950 leading-relaxed font-medium">
               {getDocGuideline()}
             </p>
           </div>
 
           {/* Mode Switcher Tabs */}
-          <div className="flex p-1 bg-slate-100 rounded-2xl text-xs font-bold">
+          <div className="flex p-1 bg-slate-100 rounded-2xl text-[11px] sm:text-xs font-bold gap-1">
             <button
               type="button"
               onClick={() => { setMode("CAMERA"); startCamera(); }}
-              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all ${
+              className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all truncate ${
                 mode === "CAMERA" ? "bg-white text-[#064E29] shadow-sm" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              {isVideoMode ? <Video className="w-3.5 h-3.5" /> : <Camera className="w-3.5 h-3.5" />}
-              <span>{isVideoMode ? "Enregistrer en direct" : "Prendre une photo"}</span>
+              {isVideoMode ? <Video className="w-3.5 h-3.5 shrink-0" /> : <Camera className="w-3.5 h-3.5 shrink-0" />}
+              <span className="truncate">{isVideoMode ? "Direct" : "Prendre photo"}</span>
             </button>
             <button
               type="button"
               onClick={() => { setMode("UPLOAD"); stopCamera(); }}
-              className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all ${
+              className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl flex items-center justify-center gap-1.5 transition-all truncate ${
                 mode === "UPLOAD" ? "bg-white text-[#064E29] shadow-sm" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Importer un fichier</span>
+              <Upload className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">Importer fichier</span>
             </button>
           </div>
 
@@ -330,20 +342,20 @@ export default function CameraCaptureModal({
                 />
 
                 {/* Framing guides overlay */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-4 sm:p-6">
                   {documentType === "CNI_RECTO" || documentType === "CNI_VERSO" || documentType === "PASSPORT" ? (
-                    <div className="w-full h-full border-2 border-dashed border-emerald-400/90 rounded-2xl flex flex-col justify-between p-3 bg-slate-950/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
-                      <div className="text-[11px] font-bold text-emerald-300 bg-emerald-950/80 px-2.5 py-1 rounded-lg self-start">
-                        Cadre CNI / Passeport
+                    <div className="w-full h-full max-w-[95%] max-h-[90%] border-2 border-dashed border-emerald-400/90 rounded-2xl flex flex-col justify-between p-2.5 sm:p-3 bg-slate-950/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
+                      <div className="text-[10px] sm:text-[11px] font-bold text-emerald-300 bg-emerald-950/80 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg self-start">
+                        Cadre Pièce d'identité
                       </div>
-                      <div className="text-[10px] text-center text-white/80 font-medium">
+                      <div className="text-[10px] text-center text-white/90 font-medium">
                         Centrez votre pièce d'identité ici
                       </div>
                     </div>
                   ) : (
-                    <div className="w-56 h-72 border-2 border-dashed border-emerald-400/90 rounded-[50%] flex items-center justify-center bg-slate-950/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
-                      <div className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-2.5 py-1 rounded-full">
-                        Placez votre visage ici
+                    <div className="w-36 h-48 sm:w-52 sm:h-64 max-w-[70%] max-h-[82%] border-2 border-dashed border-emerald-400/90 rounded-[50%] flex items-center justify-center bg-slate-950/20 shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]">
+                      <div className="text-[9px] sm:text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-2 sm:px-2.5 py-1 rounded-full text-center">
+                        Placez votre visage
                       </div>
                     </div>
                   )}
@@ -351,21 +363,21 @@ export default function CameraCaptureModal({
 
                 {/* Video recording indicator */}
                 {isRecording && (
-                  <div className="absolute top-4 left-4 bg-rose-600 text-white px-3 py-1.5 rounded-full flex items-center gap-2 text-xs font-black animate-pulse">
-                    <span className="w-2.5 h-2.5 rounded-full bg-white"></span>
-                    <span>Enregistrement : 00:0{recordingSeconds} / 00:08</span>
+                  <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-rose-600 text-white px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full flex items-center gap-2 text-[11px] sm:text-xs font-black animate-pulse">
+                    <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-white"></span>
+                    <span>00:0{recordingSeconds} / 00:08</span>
                   </div>
                 )}
               </>
             ) : (
               /* Upload view */
-              <div className="text-center p-6 space-y-3">
-                <div className="w-14 h-14 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center mx-auto">
-                  <Upload className="w-6 h-6" />
+              <div className="text-center p-4 sm:p-6 space-y-3">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center mx-auto">
+                  <Upload className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-5 py-3 bg-[#064E29] hover:opacity-90 text-white text-xs font-bold rounded-xl shadow-md">
-                    <span>Choisir un fichier sur l'appareil</span>
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 bg-[#064E29] hover:opacity-90 active:scale-[0.98] text-white text-xs font-bold rounded-xl shadow-md transition-all">
+                    <span>Choisir un fichier</span>
                     <input
                       type="file"
                       accept={isVideoMode ? "video/*" : "image/*,application/pdf"}
@@ -373,7 +385,7 @@ export default function CameraCaptureModal({
                       className="hidden"
                     />
                   </label>
-                  <p className="text-[11px] text-slate-400 mt-2">
+                  <p className="text-[10px] sm:text-[11px] text-slate-400 mt-2">
                     {isVideoMode ? "Format MP4, WebM (max 15 Mo)" : "Format JPG, PNG, PDF (max 10 Mo)"}
                   </p>
                 </div>
@@ -384,29 +396,29 @@ export default function CameraCaptureModal({
           </div>
 
           {/* Action Trigger Buttons */}
-          <div className="pt-2">
+          <div className="pt-1 sm:pt-2">
             {capturedData ? (
-              <div className="flex gap-3">
+              <div className="flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-3">
                 <button
                   type="button"
                   onClick={handleRetake}
                   disabled={isSubmitting}
-                  className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-colors"
+                  className="w-full sm:flex-1 py-3 sm:py-3.5 bg-slate-100 hover:bg-slate-200 active:scale-[0.98] text-slate-700 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all min-h-[44px]"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-4 h-4 shrink-0" />
                   <span>Reprendre</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  className="flex-1 py-3.5 bg-gradient-to-r from-[#064E29] to-[#0A5C36] hover:opacity-95 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all"
+                  className="w-full sm:flex-1 py-3 sm:py-3.5 bg-gradient-to-r from-[#064E29] to-[#0A5C36] hover:opacity-95 active:scale-[0.98] text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all min-h-[44px]"
                 >
                   {isSubmitting ? (
                     <span className="loading loading-spinner loading-sm"></span>
                   ) : (
                     <>
-                      <Check className="w-4 h-4" />
+                      <Check className="w-4 h-4 shrink-0" />
                       <span>Valider & Transmettre</span>
                     </>
                   )}
@@ -418,7 +430,7 @@ export default function CameraCaptureModal({
                   <button
                     type="button"
                     onClick={handleStopVideoRecording}
-                    className="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-rose-900/20"
+                    className="w-full py-3.5 sm:py-4 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-black text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-rose-900/20 transition-all min-h-[44px]"
                   >
                     <Pause className="w-4 h-4" />
                     <span>Arrêter l'enregistrement ({recordingSeconds}s)</span>
@@ -427,7 +439,7 @@ export default function CameraCaptureModal({
                   <button
                     type="button"
                     onClick={handleStartVideoRecording}
-                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20"
+                    className="w-full py-3.5 sm:py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-xs uppercase tracking-wider rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all min-h-[44px]"
                   >
                     <Play className="w-4 h-4 fill-white" />
                     <span>Démarrer l'enregistrement KYC (5-8s)</span>
@@ -437,7 +449,7 @@ export default function CameraCaptureModal({
                 <button
                   type="button"
                   onClick={handleTakeSnapshot}
-                  className="w-full py-4 bg-gradient-to-r from-[#064E29] to-[#0A5C36] hover:opacity-95 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20"
+                  className="w-full py-3.5 sm:py-4 bg-gradient-to-r from-[#064E29] to-[#0A5C36] hover:opacity-95 active:scale-[0.98] text-white font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 transition-all min-h-[44px]"
                 >
                   <Camera className="w-4 h-4" />
                   <span>Capturer la photo maintenant</span>

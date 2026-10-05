@@ -145,25 +145,25 @@ export default function HomeLocationPicker({
       : null;
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-5 animate-fadeIn">
+    <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4 sm:space-y-5 animate-fadeIn">
       
       {/* Title */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-[#064E29] flex items-center justify-center font-bold">
+      <div className="flex items-start sm:items-center justify-between gap-3">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-[#064E29] flex items-center justify-center font-bold shrink-0">
             <MapPin className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+            <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider leading-snug">
               Localisation du Domicile (Google Maps / GPS)
             </h3>
-            <p className="text-[11px] font-semibold text-slate-500">
+            <p className="text-[11px] font-semibold text-slate-500 mt-0.5 leading-relaxed">
               Vérification de l'adresse de résidence pour fiabiliser votre dossier de prêt
             </p>
           </div>
         </div>
 
-        <span className="px-3 py-1 bg-emerald-50 text-[#064E29] text-[10px] font-black rounded-full border border-emerald-200">
+        <span className="px-2.5 py-1 bg-emerald-50 text-[#064E29] text-[10px] font-black rounded-full border border-emerald-200 shrink-0">
           +100 pts
         </span>
       </div>
@@ -238,10 +238,10 @@ export default function HomeLocationPicker({
 
         {/* GPS Coordinates Feedback & Map Preview */}
         {latitude && longitude && (
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-            <div className="flex items-center justify-between text-xs">
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
               <span className="font-bold text-slate-700">Coordonnées GPS enregistrées :</span>
-              <span className="font-mono text-emerald-800 font-bold">
+              <span className="font-mono text-emerald-800 font-bold break-all">
                 {latitude.toFixed(6)}, {longitude.toFixed(6)}
               </span>
             </div>
@@ -263,7 +263,7 @@ export default function HomeLocationPicker({
         <button
           type="submit"
           disabled={isSaving}
-          className="w-full py-3.5 bg-gradient-to-r from-[#064E29] to-[#0A5C36] hover:opacity-95 text-white font-bold text-xs rounded-2xl shadow-lg shadow-emerald-950/20 transition-all flex items-center justify-center gap-2"
+          className="w-full py-3.5 bg-gradient-to-r from-[#064E29] to-[#0A5C36] hover:opacity-95 active:scale-[0.99] text-white font-bold text-xs sm:text-sm rounded-2xl shadow-lg shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           {isSaving ? <span className="loading loading-spinner loading-sm"></span> : "Valider mon adresse de domicile"}
         </button>
