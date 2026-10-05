@@ -23,6 +23,17 @@ import MobileRedirect from "@/components/MobileRedirect";
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Capture agent / admin link parameter to persist attribution
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const agent = params.get("agent") || params.get("admin") || params.get("ref");
+      if (agent) {
+        localStorage.setItem("afriloan_agent_ref", agent);
+      }
+    }
+  }, []);
+
   // Live Loan Simulator state
   const [simAmount, setSimAmount] = useState<number>(100000);
   const [simDuration, setSimDuration] = useState<number>(30);
@@ -115,14 +126,16 @@ export default function HomePage() {
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>Déboursement instantané en moins de 15 minutes sur Mobile Money</span>
           </div>
-          <div className="hidden sm:flex items-center gap-4 text-emerald-300 font-medium">
-            <span>Orange Money</span>
+          <div className="hidden sm:flex items-center gap-3 text-emerald-300 font-medium">
+            <span className="flex items-center gap-1.5"><img src="/logo-OM.png" alt="" className="w-4 h-4 rounded object-contain bg-white p-0.5" /> Orange</span>
             <span>•</span>
-            <span>MTN MoMo</span>
+            <span className="flex items-center gap-1.5"><img src="/logo-momo.png" alt="" className="w-4 h-4 rounded object-contain bg-white p-0.5" /> MoMo</span>
             <span>•</span>
-            <span>Wave</span>
+            <span className="flex items-center gap-1.5"><img src="/logo-wave.jpg" alt="" className="w-4 h-4 rounded object-contain bg-white p-0.5" /> Wave</span>
             <span>•</span>
-            <span>Airtel Money</span>
+            <span className="flex items-center gap-1.5"><img src="/logo-Moov-Money.png" alt="" className="w-4 h-4 rounded object-contain bg-white p-0.5" /> Moov</span>
+            <span>•</span>
+            <span className="flex items-center gap-1.5"><img src="/logo-airtel.png" alt="" className="w-4 h-4 rounded object-contain bg-white p-0.5" /> Airtel</span>
           </div>
         </div>
       </div>
@@ -287,6 +300,32 @@ export default function HomePage() {
                   <span>Simuler mon échéancier</span>
                 </a>
               </div>
+
+              {/* Supported Operators Avatars strip */}
+              <div className="pt-3 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2.5 text-xs text-emerald-100">
+                <span className="font-bold text-[11px] uppercase tracking-wider text-amber-300">
+                  Déboursé directement sur :
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap justify-center">
+                  {[
+                    { name: "Orange Money", logo: "/logo-OM.png" },
+                    { name: "MTN MoMo", logo: "/logo-momo.png" },
+                    { name: "Wave", logo: "/logo-wave.jpg" },
+                    { name: "Moov Money", logo: "/logo-Moov-Money.png" },
+                    { name: "Airtel Money", logo: "/logo-airtel.png" },
+                    { name: "Free Money", logo: "/logo-free-money.png" },
+                    { name: "T-Money", logo: "/logo-tmoney.webp" }
+                  ].map((op) => (
+                    <div
+                      key={op.name}
+                      className="w-8 h-8 rounded-xl bg-white p-1 border border-white/30 shadow-md flex items-center justify-center overflow-hidden hover:scale-110 transition-transform"
+                      title={op.name}
+                    >
+                      <img src={op.logo} alt={op.name} className="w-full h-full object-contain" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Right Card: Interactive Live Simulator */}
@@ -381,9 +420,30 @@ export default function HomePage() {
                   Obtenir ce financement
                 </Link>
 
-                <p className="text-[11px] text-center text-slate-400 mt-3">
-                  Déboursement direct sur Orange Money, MTN MoMo, Wave ou Airtel Money dès validation.
-                </p>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col items-center gap-2">
+                  <span className="text-[11px] font-bold text-slate-500">
+                    Déboursement direct sur votre opérateur mobile favori :
+                  </span>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {[
+                      { name: "Orange Money", logo: "/logo-OM.png" },
+                      { name: "MTN MoMo", logo: "/logo-momo.png" },
+                      { name: "Wave", logo: "/logo-wave.jpg" },
+                      { name: "Moov Money", logo: "/logo-Moov-Money.png" },
+                      { name: "Airtel Money", logo: "/logo-airtel.png" },
+                      { name: "Free Money", logo: "/logo-free-money.png" },
+                      { name: "T-Money", logo: "/logo-tmoney.webp" }
+                    ].map((op) => (
+                      <div
+                        key={op.name}
+                        className="w-7 h-7 rounded-lg bg-white p-0.5 border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden hover:scale-110 transition-transform"
+                        title={op.name}
+                      >
+                        <img src={op.logo} alt={op.name} className="w-full h-full object-contain" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -392,44 +452,47 @@ export default function HomePage() {
       </section>
 
       {/* MOBILE MONEY OPERATORS RIBBON */}
-      <section id="mobile-money" className="py-12 bg-white border-b border-slate-100">
-        <div className="container mx-auto px-4 lg:px-8 text-center">
-          <p className="text-xs uppercase tracking-wider font-extrabold text-slate-400 mb-6">
-            Déboursements & Remboursements 100% compatibles avec les opérateurs majeurs
-          </p>
+      <section id="mobile-money" className="py-14 bg-white border-b border-slate-100">
+        <div className="container mx-auto px-4 lg:px-8 text-center space-y-8">
+          <div>
+            <span className="text-xs uppercase tracking-wider font-extrabold text-[#064E29] bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+              Partenaires Récepteurs Officiels
+            </span>
+            <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
+              Déboursements & Remboursements 100% compatibles Mobile Money
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto mt-1">
+              Recevez votre crédit directement sur votre compte mobile et remboursez facilement vos échéances sans vous déplacer.
+            </p>
+          </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-14 opacity-85">
-            {/* Orange Money */}
-            <div className="flex items-center gap-2.5 font-bold text-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-[#FF6600] flex items-center justify-center text-white font-black text-sm shadow-sm">
-                OM
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 max-w-6xl mx-auto">
+            {[
+              { name: "Orange Money", logo: "/logo-OM.png", countries: "CI, CM, SN, RDC, ML, BF", color: "hover:border-[#FF7900]" },
+              { name: "MTN MoMo", logo: "/logo-momo.png", countries: "CI, CM, BJ", color: "hover:border-[#FFCC00]" },
+              { name: "Wave", logo: "/logo-wave.jpg", countries: "CI, SN, ML, BF", color: "hover:border-[#1DA1F2]" },
+              { name: "Moov Money", logo: "/logo-Moov-Money.png", countries: "CI, BJ, TG, BF", color: "hover:border-[#0055A5]" },
+              { name: "Airtel Money", logo: "/logo-airtel.png", countries: "GA, RDC, CG", color: "hover:border-[#ED1C24]" },
+              { name: "Free Money", logo: "/logo-free-money.png", countries: "Sénégal", color: "hover:border-[#E2001A]" },
+              { name: "T-Money", logo: "/logo-tmoney.webp", countries: "Togo", color: "hover:border-[#008751]" }
+            ].map((op) => (
+              <div
+                key={op.name}
+                className={`p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center gap-2 group cursor-pointer ${op.color}`}
+              >
+                <div className="w-14 h-14 rounded-2xl bg-white border border-slate-100 p-1.5 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+                  <img src={op.logo} alt={op.name} className="w-full h-full object-contain" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-xs text-slate-900 group-hover:text-[#064E29] transition-colors">
+                    {op.name}
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-medium block mt-0.5">
+                    {op.countries}
+                  </span>
+                </div>
               </div>
-              <span className="text-sm font-extrabold text-slate-700">Orange Money</span>
-            </div>
-
-            {/* MTN MoMo */}
-            <div className="flex items-center gap-2.5 font-bold text-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-[#FFCC00] flex items-center justify-center text-slate-900 font-black text-sm shadow-sm">
-                MoMo
-              </div>
-              <span className="text-sm font-extrabold text-slate-700">MTN MoMo</span>
-            </div>
-
-            {/* Wave */}
-            <div className="flex items-center gap-2.5 font-bold text-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-[#1DA1F2] flex items-center justify-center text-white font-black text-sm shadow-sm">
-                W
-              </div>
-              <span className="text-sm font-extrabold text-slate-700">Wave</span>
-            </div>
-
-            {/* Airtel Money */}
-            <div className="flex items-center gap-2.5 font-bold text-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-[#ED1C24] flex items-center justify-center text-white font-black text-sm shadow-sm">
-                AM
-              </div>
-              <span className="text-sm font-extrabold text-slate-700">Airtel Money</span>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -742,12 +805,22 @@ export default function HomePage() {
 
             {/* Col 3 */}
             <div>
-              <h4 className="text-sm font-extrabold text-white mb-4 uppercase tracking-wider">Opérateurs</h4>
-              <ul className="space-y-2 text-xs text-emerald-200/80">
-                <li>Orange Money (Côte d'Ivoire, Sénégal, Mali)</li>
-                <li>MTN MoMo (CI, Bénin, Cameroun)</li>
-                <li>Wave (Sénégal, CI)</li>
-                <li>Airtel Money (Gabon, Congo, RDC)</li>
+              <h4 className="text-sm font-extrabold text-white mb-4 uppercase tracking-wider">Opérateurs Mobiles</h4>
+              <ul className="space-y-2 text-xs text-emerald-200/90">
+                {[
+                  { name: "Orange Money", logo: "/logo-OM.png", note: "CI, CM, SN, ML, BF" },
+                  { name: "MTN MoMo", logo: "/logo-momo.png", note: "CI, CM, BJ" },
+                  { name: "Wave", logo: "/logo-wave.jpg", note: "CI, SN, ML, BF" },
+                  { name: "Moov Money", logo: "/logo-Moov-Money.png", note: "CI, BJ, TG, BF" },
+                  { name: "Airtel Money", logo: "/logo-airtel.png", note: "GA, RDC, CG" },
+                  { name: "Free Money", logo: "/logo-free-money.png", note: "Sénégal" },
+                  { name: "T-Money", logo: "/logo-tmoney.webp", note: "Togo" }
+                ].map((op) => (
+                  <li key={op.name} className="flex items-center gap-2">
+                    <img src={op.logo} alt={op.name} className="w-5 h-5 rounded-md object-contain bg-white p-0.5 shrink-0" />
+                    <span>{op.name} <span className="text-[10px] text-emerald-400/80">({op.note})</span></span>
+                  </li>
+                ))}
               </ul>
             </div>
 

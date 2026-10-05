@@ -5,7 +5,7 @@ import { recalculateUserScore } from "@/lib/creditScore";
 
 export async function GET(req: Request) {
   try {
-    const { admin, errorResponse } = await requireAdmin(req);
+    const { admin, isSuperAdmin, errorResponse } = await requireAdmin(req);
     if (errorResponse) return errorResponse;
 
     const { searchParams } = new URL(req.url);
@@ -14,6 +14,24 @@ export async function GET(req: Request) {
     const where: any = {};
     if (status && status !== "ALL") {
       where.status = status;
+    }
+
+    if (!isSuperAdmin) {
+      where.user = { assignedAdminId: admin.id };
+    }
+
+    const dossierConditions: any[] = [
+      {
+        OR: [
+          { kycDocuments: { some: {} } },
+          { bankAccounts: { some: {} } },
+          { kycStatus: { in: ["PENDING", "VERIFIED", "REJECTED"] } }
+        ]
+      }
+    ];
+
+    if (!isSuperAdmin) {
+      dossierConditions.push({ assignedAdminId: admin.id });
     }
 
     const [documents, dossiers] = await Promise.all([
@@ -42,13 +60,7 @@ export async function GET(req: Request) {
         }
       }),
       prisma.user.findMany({
-        where: {
-          OR: [
-            { kycDocuments: { some: {} } },
-            { bankAccounts: { some: {} } },
-            { kycStatus: { in: ["PENDING", "VERIFIED", "REJECTED"] } }
-          ]
-        },
+        where: { AND: dossierConditions },
         select: {
           id: true,
           name: true,

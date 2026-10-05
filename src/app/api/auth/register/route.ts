@@ -5,7 +5,8 @@ import { sendOTP, sendLoanNotification } from "@/lib/mailer";
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password, phone, mobileMoneyProvider, mobileMoneyNumber, referralCode } = await req.json();
+    const body = await req.json();
+    const { name, email, password, phone, mobileMoneyProvider, mobileMoneyNumber, referralCode, agentCode } = body;
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: "Nom, e-mail et mot de passe sont requis." }, { status: 400 });
@@ -21,10 +22,39 @@ export async function POST(req: Request) {
     const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
     let referredById = null;
-    if (referralCode && referralCode.trim() !== "") {
-      const referrer = await prisma.user.findUnique({ where: { referralCode: referralCode.trim() } });
-      if (referrer) {
-        referredById = referrer.id;
+    let assignedAdminId = null;
+
+    const refCandidate = ((referralCode || body.agentCode) || "").toString().trim();
+    if (refCandidate) {
+      // 1. Vérifier si le code correspond au code personnalisé d'un sous-administrateur / agent
+      const adminByCode = await prisma.user.findFirst({
+        where: {
+          adminCode: { equals: refCandidate, mode: "insensitive" },
+          role: { in: ["ADMIN", "SUPER_ADMIN"] }
+        }
+      });
+
+      if (adminByCode) {
+        assignedAdminId = adminByCode.id;
+        referredById = adminByCode.id;
+      } else {
+        // 2. Vérifier par code de parrainage classique ou ID utilisateur
+        const referrer = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { referralCode: refCandidate },
+              { id: refCandidate }
+            ]
+          }
+        });
+        if (referrer) {
+          referredById = referrer.id;
+          if (["ADMIN", "SUPER_ADMIN"].includes(referrer.role)) {
+            assignedAdminId = referrer.id;
+          } else if (referrer.assignedAdminId) {
+            assignedAdminId = referrer.assignedAdminId;
+          }
+        }
       }
     }
 
@@ -46,10 +76,22 @@ export async function POST(req: Request) {
         creditScore: 720,
         referralCode: newReferralCode,
         referredById,
+        assignedAdminId,
       },
     });
 
-    if (referredById) {
+    if (assignedAdminId) {
+      await prisma.notification.create({
+        data: {
+          userId: assignedAdminId,
+          title: "Nouveau client dans votre portefeuille ! 👤",
+          message: `${name} (${phone || email}) a rejoint votre gestion via votre lien d'agent personnalisé.`,
+          type: "SYSTEM",
+        },
+      });
+    }
+
+    if (referredById && referredById !== assignedAdminId) {
       await prisma.activity.create({
         data: {
           userId: referredById,

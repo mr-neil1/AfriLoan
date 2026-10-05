@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   X, 
   Clock, 
@@ -11,10 +11,11 @@ import {
   PhoneCall, 
   RefreshCw, 
   ShieldCheck, 
-  Sparkles,
-  ArrowRight,
-  FileText
+  Sparkles, 
+  ArrowRight, 
+  FileText 
 } from "lucide-react";
+import { getMobileMoneyLogo } from "@/lib/countriesData";
 
 interface LoanStatusModalProps {
   isOpen: boolean;
@@ -30,6 +31,18 @@ export default function LoanStatusModal({
   onRefresh
 }: LoanStatusModalProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   if (!isOpen || !loan) return null;
 
@@ -55,8 +68,8 @@ export default function LoanStatusModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-      <div className="w-full max-w-lg rounded-3xl bg-white border border-slate-200 p-6 sm:p-7 shadow-2xl relative space-y-6 animate-scaleIn max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+      <div className="w-full max-w-lg rounded-3xl bg-white border border-slate-200 p-4 sm:p-7 shadow-2xl relative space-y-5 sm:space-y-6 animate-scaleIn my-auto max-h-[94dvh] overflow-y-auto">
         
         {/* Top bar */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -239,9 +252,18 @@ export default function LoanStatusModal({
                     {isDisbursed ? "Effectué" : "En attente"}
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-500">
-                  Versement immédiat vers {loan.disbursementMethod || "Mobile Money"} ({loan.disbursementPhone || "Numéro enregistré"}).
-                </p>
+                <div className="flex items-center gap-2 flex-wrap mt-1 text-[11px] text-slate-500">
+                  <span>Versement immédiat vers</span>
+                  <span className="inline-flex items-center gap-1.5 font-bold text-slate-800 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-2xs">
+                    <img 
+                      src={getMobileMoneyLogo(loan.disbursementMethod)} 
+                      alt="" 
+                      className="w-4 h-4 rounded-md object-contain bg-white p-0.5 border border-slate-200 shrink-0" 
+                    />
+                    <span>{loan.disbursementMethod || "Mobile Money"}</span>
+                  </span>
+                  <span className="font-mono text-slate-500 font-semibold">({loan.disbursementPhone || "Numéro enregistré"})</span>
+                </div>
               </div>
             </div>
 

@@ -23,7 +23,7 @@ import {
   KeyRound
 } from "lucide-react";
 import AdminPinModal from "@/components/admin/AdminPinModal";
-import { getPaymentMethodById } from "@/lib/countriesData";
+import { getPaymentMethodById, getMobileMoneyLogo } from "@/lib/countriesData";
 
 export default function AdminLoansPage() {
   const [loans, setLoans] = useState<any[]>([]);
@@ -273,6 +273,11 @@ export default function AdminLoansPage() {
                         <div className="text-[10px] text-slate-500 font-medium">
                           {loan.title} ({loan.durationDays}j)
                         </div>
+                        {loan.user?.assignedAdmin && (
+                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-200/80 px-1.5 py-0.5 rounded-md">
+                            <span>Agent : {loan.user.assignedAdmin.name}</span>
+                          </div>
+                        )}
                       </td>
 
                       {/* Montant */}
@@ -294,12 +299,12 @@ export default function AdminLoansPage() {
                           return (
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-lg bg-white border border-slate-200/80 shadow-xs flex items-center justify-center shrink-0 overflow-hidden p-0.5">
-                                  {provider?.logoUrl ? (
-                                    <img src={provider.logoUrl} alt="" className="w-full h-full object-contain" />
-                                  ) : (
-                                    <Smartphone className="w-3.5 h-3.5 text-slate-500" />
-                                  )}
+                                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200/80 shadow-xs flex items-center justify-center shrink-0 overflow-hidden p-1">
+                                  <img 
+                                    src={provider?.logoUrl || getMobileMoneyLogo(loan.disbursementMethod || loan.user?.mobileMoneyProvider)} 
+                                    alt="" 
+                                    className="w-full h-full object-contain" 
+                                  />
                                 </div>
                                 <div className="min-w-0">
                                   <span className="font-extrabold text-slate-900 block truncate max-w-[130px]">

@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { User as UserIcon, Mail, Phone, ShieldCheck, LogOut, Smartphone, Check, Lock, KeyRound, AlertCircle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/LanguageContext";
+import { ALL_MOBILE_OPERATORS, getMobileMoneyLogo } from "@/lib/countriesData";
+import { useSwrLocalCache, invalidateCachePattern } from "@/lib/storageCache";
 
 export default function ProfilePage() {
   const { language, setLanguage } = useTranslation();
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Form states
   const [name, setName] = useState("");
@@ -22,36 +22,55 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      const token = localStorage.getItem("afriloan_token");
-      if (!token) {
-        window.location.href = "/auth";
-        return;
-      }
-
-      const res = await fetch("/api/me", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-        setName(data.user.name || "");
-        setEmail(data.user.email || "");
-        setPhone(data.user.phone || "");
-        setMobileMoneyProvider(data.user.mobileMoneyProvider || "ORANGE_MONEY");
-        setMobileMoneyNumber(data.user.mobileMoneyNumber || data.user.phone || "");
-      }
-    } catch (e) {
-      // ignore
-    } finally {
-      setIsLoading(false);
+  // Fetcher for user profile
+  const fetchUserProfile = async () => {
+    const token = localStorage.getItem("afriloan_token");
+    if (!token) {
+      window.location.href = "/auth";
+      throw new Error("Non authentifié");
     }
+
+    const res = await fetch("/api/me", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      throw new Error("Erreur de chargement du profil");
+    }
+    const data = await res.json();
+    return data.user;
   };
+
+  // Instant SWR cache load from localStorage with background revalidation
+  const {
+    data: user,
+    isLoading,
+    isRevalidating,
+    refresh: fetchProfile
+  } = useSwrLocalCache<any>({
+    cacheKey: "user_profile_cache",
+    fetcher: fetchUserProfile,
+    ttlMs: 1000 * 60 * 15,
+    onSuccess: (u) => {
+      if (u) {
+        setName(u.name || "");
+        setEmail(u.email || "");
+        setPhone(u.phone || "");
+        setMobileMoneyProvider(u.mobileMoneyProvider || "ORANGE_MONEY");
+        setMobileMoneyNumber(u.mobileMoneyNumber || u.phone || "");
+      }
+    }
+  });
+
+  // Sync state if initial cache already exists
+  useEffect(() => {
+    if (user) {
+      setName(user.name || "");
+      setEmail(user.email || "");
+      setPhone(user.phone || "");
+      setMobileMoneyProvider(user.mobileMoneyProvider || "ORANGE_MONEY");
+      setMobileMoneyNumber(user.mobileMoneyNumber || user.phone || "");
+    }
+  }, [user]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,6 +105,12 @@ export default function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setNewPin("");
+      
+      // Invalider les caches pour que le dashboard et l'app rechargent les données à jour
+      invalidateCachePattern("user_");
+      invalidateCachePattern("dashboard");
+      invalidateCachePattern("me_user");
+      
       fetchProfile();
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
@@ -198,26 +223,32 @@ export default function ProfilePage() {
             Compte de paiement Mobile Money
           </h3>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {[
-              { id: "ORANGE_MONEY", name: "Orange Money" },
-              { id: "MTN_MOMO", name: "MTN MoMo" },
-              { id: "WAVE", name: "Wave" },
-              { id: "AIRTEL_MONEY", name: "Airtel Money" }
-            ].map((op) => (
-              <button
-                key={op.id}
-                type="button"
-                onClick={() => setMobileMoneyProvider(op.id)}
-                className={`p-3 rounded-2xl border text-xs font-bold text-center transition-all ${
-                  mobileMoneyProvider === op.id
-                    ? "border-[#064E29] bg-emerald-50 text-[#064E29]"
-                    : "border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                {op.name}
-              </button>
-            ))}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+            {ALL_MOBILE_OPERATORS.map((op) => {
+              const isSelected = mobileMoneyProvider === op.id;
+              return (
+                <button
+                  key={op.id}
+                  type="button"
+                  onClick={() => setMobileMoneyProvider(op.id)}
+                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-2 group cursor-pointer relative ${
+                    isSelected
+                      ? "border-[#064E29] bg-emerald-50/80 text-[#064E29] font-bold shadow-sm ring-2 ring-[#064E29]/20"
+                      : "border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  {isSelected && (
+                    <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-[#064E29] text-white flex items-center justify-center shadow-xs">
+                      <Check className="w-2.5 h-2.5" />
+                    </div>
+                  )}
+                  <div className="w-12 h-12 rounded-xl bg-white border border-slate-100 p-1.5 flex items-center justify-center shadow-xs overflow-hidden group-hover:scale-105 transition-transform">
+                    <img src={op.logoUrl} alt={op.name} className="w-full h-full object-contain" />
+                  </div>
+                  <span className="text-[11px] font-extrabold leading-tight">{op.name}</span>
+                </button>
+              );
+            })}
           </div>
 
           <div>

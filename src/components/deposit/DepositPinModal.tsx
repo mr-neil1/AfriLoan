@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Lock, ShieldCheck, X, AlertCircle, Loader2, Delete } from "lucide-react";
+import { getMobileMoneyLogo } from "@/lib/countriesData";
 
 interface DepositPinModalProps {
   isOpen: boolean;
@@ -32,6 +33,18 @@ export default function DepositPinModal({
 
   const isMtnCameroon = methodName?.toLowerCase().includes("mtn") && country?.toUpperCase() === "CM";
   const requiredPinLength = isMtnCameroon ? 5 : 4;
+
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -99,24 +112,36 @@ export default function DepositPinModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-100 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/65 backdrop-blur-sm animate-fadeIn overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-4 sm:p-6 text-center border border-slate-100 relative my-auto max-h-[94dvh] overflow-y-auto">
         <button
           onClick={onClose}
           disabled={isLoading}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+          className="absolute top-3.5 right-3.5 p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
-        <div className="w-14 h-14 bg-emerald-50 text-[#064E29] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-sm">
-          <Lock className="w-7 h-7" />
+        <div className="w-12 h-12 bg-emerald-50 text-[#064E29] rounded-2xl flex items-center justify-center mx-auto mb-3 border border-emerald-100 shadow-sm">
+          <Lock className="w-6 h-6" />
         </div>
 
-        <h3 className="text-xl font-bold text-slate-900 mb-1">Confirmation Mobile Money</h3>
-        <p className="text-xs text-slate-500 mb-4">
-          Paiement sécurisé via <span className="font-semibold text-slate-700">{methodName}</span>
-        </p>
+        <h3 className="text-lg font-black text-slate-900 mb-1">Confirmation Mobile Money</h3>
+        
+        {/* Payment Method Logo Badge */}
+        <div className="flex items-center justify-center gap-2.5 mb-3 bg-slate-50 p-2 rounded-2xl border border-slate-100">
+          <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 p-0.5 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+            <img 
+              src={getMobileMoneyLogo(methodName)} 
+              alt={methodName} 
+              className="w-full h-full object-contain" 
+            />
+          </div>
+          <div className="text-left min-w-0">
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Opérateur débité</div>
+            <div className="text-xs font-black text-slate-900 truncate">{methodName}</div>
+          </div>
+        </div>
 
         <div className="bg-slate-50 rounded-2xl p-3 mb-5 border border-slate-100">
           <div className="text-xs text-slate-500 mb-1">Montant de la transaction</div>
@@ -148,13 +173,13 @@ export default function DepositPinModal({
         </div>
 
         {/* Keypad */}
-        <div className="grid grid-cols-3 gap-2.5 mb-5">
+        <div className="grid grid-cols-3 gap-2 sm:gap-2.5 mb-4 sm:mb-5">
           {shuffledKeypad.map((num) => (
             <button
               key={num}
               onClick={() => handleKeyPress(num)}
               disabled={isLoading}
-              className="h-12 bg-slate-50 hover:bg-emerald-50 text-slate-800 hover:text-[#064E29] font-bold text-lg rounded-2xl border border-slate-100 transition-all active:scale-95 disabled:opacity-50"
+              className="h-11 sm:h-12 bg-slate-50 hover:bg-emerald-50 text-slate-800 hover:text-[#064E29] font-black text-base sm:text-lg rounded-2xl border border-slate-100 transition-all active:scale-95 disabled:opacity-50"
             >
               {num}
             </button>
@@ -162,14 +187,14 @@ export default function DepositPinModal({
           <button
             onClick={() => setPin("")}
             disabled={isLoading || pin.length === 0}
-            className="h-12 bg-slate-50 hover:bg-slate-100 text-slate-500 font-semibold text-xs rounded-2xl border border-slate-100 transition-all active:scale-95 disabled:opacity-40"
+            className="h-11 sm:h-12 bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold text-xs rounded-2xl border border-slate-100 transition-all active:scale-95 disabled:opacity-40"
           >
             Reset
           </button>
           <button
             onClick={handleDelete}
             disabled={isLoading || pin.length === 0}
-            className="h-12 bg-slate-50 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-2xl border border-slate-100 transition-all flex items-center justify-center active:scale-95 disabled:opacity-40"
+            className="h-11 sm:h-12 bg-slate-50 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-2xl border border-slate-100 transition-all flex items-center justify-center active:scale-95 disabled:opacity-40"
           >
             <Delete className="w-5 h-5" />
           </button>

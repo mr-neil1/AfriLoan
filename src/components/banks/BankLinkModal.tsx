@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Building2, 
   X, 
@@ -33,6 +33,18 @@ export default function BankLinkModal({
   userCountryCode = "CI",
   onBankLinked
 }: BankLinkModalProps) {
+  // Verrouiller le scroll d'arrière-plan sur mobile/desktop lorsque le modal est actif
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
+
   const [selectedCountry, setSelectedCountry] = useState(userCountryCode);
   const [selectedBankId, setSelectedBankId] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
@@ -135,7 +147,7 @@ export default function BankLinkModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
       <div 
-        className="w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[94vh] bg-white transition-all duration-300"
+        className="w-full max-w-lg rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90vh] bg-white transition-all duration-300"
         style={
           step === "SECURITY_AUTH" && selectedBank
             ? { borderColor: `${selectedBank.themeColor}40` }

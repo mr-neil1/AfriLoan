@@ -6,6 +6,7 @@ import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import Link from "next/link";
+import { ALL_MOBILE_OPERATORS } from "@/lib/countriesData";
 
 type AuthState = "splash" | "login" | "register" | "otp";
 
@@ -29,8 +30,17 @@ function AuthForm() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const tab = searchParams.get("tab") as AuthState;
-    const ref = searchParams.get("ref");
-    if (ref) setReferralCode(ref);
+    const ref = searchParams.get("ref") || searchParams.get("agent") || searchParams.get("admin");
+    const storedRef = typeof window !== "undefined" ? localStorage.getItem("afriloan_agent_ref") : null;
+    const finalRef = ref || storedRef;
+
+    if (finalRef) {
+      setReferralCode(finalRef);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("afriloan_agent_ref", finalRef);
+      }
+    }
+
     if (tab === "register" || tab === "login") {
       setAuthState(tab);
     }
@@ -72,6 +82,7 @@ function AuthForm() {
           mobileMoneyProvider,
           mobileMoneyNumber: mobileMoneyNumber || phone,
           referralCode,
+          agentCode: referralCode,
         }),
       });
 
@@ -352,27 +363,36 @@ function AuthForm() {
 
               {/* Mobile Money Operator */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Opérateur Mobile Money favori</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "ORANGE_MONEY", name: "Orange Money" },
-                    { id: "MTN_MOMO", name: "MTN MoMo" },
-                    { id: "WAVE", name: "Wave" },
-                    { id: "AIRTEL_MONEY", name: "Airtel Money" }
-                  ].map(op => (
-                    <button
-                      key={op.id}
-                      type="button"
-                      onClick={() => setMobileMoneyProvider(op.id)}
-                      className={`py-2 px-2 text-xs font-semibold rounded-xl border text-center transition-all ${
-                        mobileMoneyProvider === op.id
-                          ? "border-[#064E29] bg-emerald-50 text-[#064E29] font-bold"
-                          : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                      }`}
-                    >
-                      {op.name}
-                    </button>
-                  ))}
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                  <span>Opérateur Mobile Money favori</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold">Réception instantanée</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {ALL_MOBILE_OPERATORS.map((op) => {
+                    const isSelected = mobileMoneyProvider === op.id;
+                    return (
+                      <button
+                        key={op.id}
+                        type="button"
+                        onClick={() => setMobileMoneyProvider(op.id)}
+                        className={`p-2.5 text-xs font-bold rounded-2xl border text-left transition-all flex items-center gap-2.5 group cursor-pointer relative ${
+                          isSelected
+                            ? "border-[#064E29] bg-emerald-50/90 text-[#064E29] ring-2 ring-[#064E29]/20 shadow-xs"
+                            : "border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-white border border-slate-100 p-1 shrink-0 flex items-center justify-center overflow-hidden shadow-xs group-hover:scale-105 transition-transform">
+                          <img src={op.logoUrl} alt={op.name} className="w-full h-full object-contain" />
+                        </div>
+                        <span className="text-[11px] truncate leading-tight font-extrabold flex-1">{op.name}</span>
+                        {isSelected && (
+                          <div className="w-4 h-4 rounded-full bg-[#064E29] text-white flex items-center justify-center shrink-0">
+                            <CheckCircle2 className="w-3 h-3" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

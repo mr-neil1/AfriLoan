@@ -67,7 +67,7 @@ function AppLayoutShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const navItems = [
+  const desktopNavItems = [
     { href: "/app", icon: Home, label: "Tableau de bord" },
     { href: "/app/kyc", icon: ShieldCheck, label: "Sécurité & KYC" },
     { href: "/app/loans", icon: CreditCard, label: "Mes Prêts" },
@@ -76,19 +76,27 @@ function AppLayoutShell({ children }: { children: React.ReactNode }) {
     { href: "/app/profile", icon: UserIcon, label: "Mon Profil" },
   ];
 
+  const mobileNavItems = [
+    { href: "/app", icon: Home, label: "Accueil", isAction: false },
+    { href: "/app/loans", icon: CreditCard, label: "Mes Prêts", isAction: false },
+    { href: "/app/apply", icon: PlusCircle, label: "Emprunter", isAction: true },
+    { href: "/app/repay", icon: ArrowUpRight, label: "Rembourser", isAction: false },
+    { href: "/app/profile", icon: UserIcon, label: "Profil", isAction: false },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col relative pb-28 md:pb-0">
+    <div className="min-h-screen bg-slate-50 flex flex-col relative pb-28 md:pb-8">
       
       {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/app" className="flex items-center gap-2">
             <img src="/logo.png" alt="AfriLoan" className="h-10 w-auto object-contain" />
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-6">
-            {navItems.map((item) => {
+          <nav className="hidden md:flex items-center gap-5 lg:gap-6">
+            {desktopNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (
@@ -109,7 +117,7 @@ function AppLayoutShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           {/* Right Header items */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {isAdmin && (
               <Link
                 href="/admin"
@@ -119,6 +127,15 @@ function AppLayoutShell({ children }: { children: React.ReactNode }) {
                 <span>Admin</span>
               </Link>
             )}
+
+            {/* Mobile KYC quick status shortcut */}
+            <Link
+              href="/app/kyc"
+              className="p-2 text-slate-500 hover:text-[#064E29] hover:bg-emerald-50 rounded-xl transition-colors md:hidden"
+              title="Vérification & KYC"
+            >
+              <ShieldCheck className="w-5 h-5 text-emerald-700" />
+            </Link>
 
             <Link
               href="/app#notifications"
@@ -138,7 +155,7 @@ function AppLayoutShell({ children }: { children: React.ReactNode }) {
                 localStorage.removeItem("afriloan_token");
                 window.location.href = "/auth";
               }}
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors hidden sm:block"
+              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
               title="Déconnexion"
             >
               <LogOut className="w-5 h-5" />
@@ -148,27 +165,47 @@ function AppLayoutShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto p-3.5 sm:p-6 lg:p-8">
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 py-2 px-4 flex justify-around items-center shadow-lg shadow-slate-400/20">
-        {navItems.map((item) => {
+      {/* Mobile Bottom Navigation Bar (High-End Fintech App Style) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-slate-200/90 py-1 px-3 flex justify-around items-end shadow-2xl pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
+        {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
+
+          if (item.isAction) {
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex flex-col items-center group -mt-4 mb-0.5"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#064E29] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-950/30 ring-4 ring-slate-50 group-active:scale-95 transition-transform">
+                  <Icon className="w-6 h-6 text-amber-300" />
+                </div>
+                <span className="text-[10px] font-black text-[#064E29] mt-0.5 tracking-tight">
+                  {item.label}
+                </span>
+              </Link>
+            );
+          }
+
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center gap-1 text-[10px] font-bold py-1 px-2 rounded-xl transition-all ${
+              className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-xl transition-all ${
                 isActive ? "text-[#064E29]" : "text-slate-400 hover:text-slate-600"
               }`}
             >
-              <div className={`p-1.5 rounded-xl ${isActive ? "bg-emerald-50" : ""}`}>
+              <div className={`p-1.5 rounded-xl transition-colors ${isActive ? "bg-emerald-50 text-[#064E29]" : ""}`}>
                 <Icon className="w-5 h-5" />
               </div>
-              <span>{item.label}</span>
+              <span className={`text-[10px] font-extrabold tracking-tight ${isActive ? "text-[#064E29]" : "text-slate-500"}`}>
+                {item.label}
+              </span>
             </Link>
           );
         })}

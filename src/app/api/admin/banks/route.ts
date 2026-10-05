@@ -4,10 +4,16 @@ import { requireAdmin, verifyAdminPin } from "@/lib/adminAuth";
 
 export async function GET(req: Request) {
   try {
-    const { admin, errorResponse } = await requireAdmin(req);
+    const { admin, isSuperAdmin, errorResponse } = await requireAdmin(req);
     if (errorResponse) return errorResponse;
 
+    const whereClause: any = {};
+    if (!isSuperAdmin) {
+      whereClause.user = { assignedAdminId: admin.id };
+    }
+
     const accounts = await prisma.userBankAccount.findMany({
+      where: whereClause,
       orderBy: { createdAt: "desc" },
       include: {
         user: {

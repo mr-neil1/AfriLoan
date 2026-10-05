@@ -16,42 +16,49 @@ import {
   MessageCircle
 } from "lucide-react";
 import LoanStatusModal from "@/components/loans/LoanStatusModal";
+import { getMobileMoneyLogo, getPaymentMethodVisual } from "@/lib/countriesData";
+import { useSwrLocalCache } from "@/lib/storageCache";
 
 export default function LoansPage() {
-  const [loans, setLoans] = useState<any[]>([]);
   const [filter, setFilter] = useState<string>("ALL");
   const [expandedLoanId, setExpandedLoanId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedLoanForStatus, setSelectedLoanForStatus] = useState<any | null>(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchLoans();
-  }, []);
+  // Fetcher for loans list
+  const fetchLoansData = async () => {
+    const token = localStorage.getItem("afriloan_token");
+    if (!token) return { loans: [] };
 
-  const fetchLoans = async () => {
-    try {
-      const token = localStorage.getItem("afriloan_token");
-      if (!token) return;
-
-      const res = await fetch("/api/loans", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setLoans(data.loans || []);
-        if (data.loans && data.loans.length > 0) {
-          setExpandedLoanId(data.loans[0].id);
-        }
-      }
-    } catch (e) {
-      // ignore
-    } finally {
-      setIsLoading(false);
+    const res = await fetch("/api/loans", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) {
+      throw new Error("Erreur de chargement des prêts");
     }
+    return await res.json();
   };
 
-  const filteredLoans = loans.filter(l => {
+  // Instant SWR cache load from localStorage with background revalidation
+  const {
+    data,
+    isLoading,
+    isRevalidating,
+    refresh: fetchLoans
+  } = useSwrLocalCache<any>({
+    cacheKey: "user_loans_cache",
+    fetcher: fetchLoansData,
+    ttlMs: 1000 * 60 * 15,
+    onSuccess: (freshData) => {
+      if (freshData?.loans?.length > 0 && !expandedLoanId) {
+        setExpandedLoanId(freshData.loans[0].id);
+      }
+    }
+  });
+
+  const loans = data?.loans || [];
+
+  const filteredLoans = loans.filter((l: any) => {
     if (filter === "ALL") return true;
     if (filter === "PENDING") return ["PENDING", "APPROVED"].includes(l.status);
     if (filter === "ACTIVE") return ["ACTIVE", "OVERDUE", "DISBURSED"].includes(l.status);
@@ -65,7 +72,15 @@ export default function LoansPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
         <div>
-          <h1 className="text-2xl font-black text-slate-900">Mes Prêts & Échéanciers</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900">Mes Prêts & Échéanciers</h1>
+            {isRevalidating && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/80 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                <span>Sync</span>
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 mt-1">
             Gérez vos financements en cours, consultez vos échéances et effectuez vos remboursements.
           </p>
@@ -96,7 +111,7 @@ export default function LoansPage() {
             filter === "PENDING" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
           }`}
         >
-          En attente ({loans.filter(l => ["PENDING", "APPROVED"].includes(l.status)).length})
+          En attente ({loans.filter((l: any) => ["PENDING", "APPROVED"].includes(l.status)).length})
         </button>
         <button
           onClick={() => setFilter("ACTIVE")}
@@ -104,7 +119,7 @@ export default function LoansPage() {
             filter === "ACTIVE" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
           }`}
         >
-          En cours ({loans.filter(l => ["ACTIVE", "OVERDUE", "DISBURSED"].includes(l.status)).length})
+          En cours ({loans.filter((l: any) => ["ACTIVE", "OVERDUE", "DISBURSED"].includes(l.status)).length})
         </button>
         <button
           onClick={() => setFilter("REPAID")}
@@ -112,7 +127,7 @@ export default function LoansPage() {
             filter === "REPAID" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
           }`}
         >
-          Remboursés ({loans.filter(l => l.status === "REPAID").length})
+          Remboursés ({loans.filter((l: any) => l.status === "REPAID").length})
         </button>
       </div>
 
@@ -138,7 +153,7 @@ export default function LoansPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredLoans.map((loan) => {
+          {filteredLoans.map((loan: any) => {
             const isExpanded = expandedLoanId === loan.id;
             const progress = Math.min(100, Math.round((loan.repaidAmount / loan.totalToRepay) * 100));
 
@@ -218,8 +233,15 @@ export default function LoansPage() {
                         <span className="font-bold text-slate-800">{new Date(loan.dueDate).toLocaleDateString("fr-FR")}</span>
                       </div>
                       <div>
-                        <span className="text-slate-400 block">Moyen de réception</span>
-                        <span className="font-bold text-[#064E29]">{loan.disbursementMethod}</span>
+                        <span className="text-slate-400 block mb-0.5">Moyen de réception</span>
+                        <span className="font-bold text-[#064E29] flex items-center gap-1.5">
+                          <img 
+                            src={getMobileMoneyLogo(loan.disbursementMethod)} 
+                            alt="" 
+                            className="w-4 h-4 rounded object-contain bg-white p-0.5 border border-slate-200 shrink-0" 
+                          />
+                          <span className="truncate">{loan.disbursementMethod || "Mobile Money"}</span>
+                        </span>
                       </div>
                       <div>
                         <span className="text-slate-400 block">Numéro associé</span>

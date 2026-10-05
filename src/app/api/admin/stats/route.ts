@@ -4,11 +4,16 @@ import { requireAdmin } from "@/lib/adminAuth";
 
 export async function GET(req: Request) {
   try {
-    const { admin, errorResponse } = await requireAdmin(req);
+    const { admin, isSuperAdmin, errorResponse } = await requireAdmin(req);
     if (errorResponse) return errorResponse;
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+
+    // Scoping multi-admin : condition de filtrage
+    const userScope = isSuperAdmin ? {} : { assignedAdminId: admin.id };
+    const loanScope = isSuperAdmin ? {} : { user: { assignedAdminId: admin.id } };
+    const repaymentScope = isSuperAdmin ? {} : { user: { assignedAdminId: admin.id } };
 
     const [
       totalUsers,
@@ -20,23 +25,25 @@ export async function GET(req: Request) {
       totalRepaidAgg,
       pendingLoansCount,
       recentLoans,
-      recentRepayments
+      recentRepayments,
+      subAdminsCount
     ] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { createdAt: { gte: todayStart } } }),
-      prisma.loan.count({ where: { status: { in: ["ACTIVE", "DISBURSED"] } } }),
-      prisma.loan.count({ where: { status: "OVERDUE" } }),
-      prisma.loan.count({ where: { status: "REPAID" } }),
+      prisma.user.count({ where: userScope }),
+      prisma.user.count({ where: { ...userScope, createdAt: { gte: todayStart } } }),
+      prisma.loan.count({ where: { ...loanScope, status: { in: ["ACTIVE", "DISBURSED"] } } }),
+      prisma.loan.count({ where: { ...loanScope, status: "OVERDUE" } }),
+      prisma.loan.count({ where: { ...loanScope, status: "REPAID" } }),
       prisma.loan.aggregate({
-        where: { status: { in: ["ACTIVE", "DISBURSED", "REPAID", "OVERDUE"] } },
+        where: { ...loanScope, status: { in: ["ACTIVE", "DISBURSED", "REPAID", "OVERDUE"] } },
         _sum: { amount: true }
       }),
       prisma.repayment.aggregate({
-        where: { status: "COMPLETED" },
+        where: { ...repaymentScope, status: "COMPLETED" },
         _sum: { amount: true }
       }),
-      prisma.loan.count({ where: { status: "PENDING" } }),
+      prisma.loan.count({ where: { ...loanScope, status: "PENDING" } }),
       prisma.loan.findMany({
+        where: loanScope,
         take: 6,
         orderBy: { createdAt: "desc" },
         include: {
@@ -46,6 +53,7 @@ export async function GET(req: Request) {
         }
       }),
       prisma.repayment.findMany({
+        where: repaymentScope,
         take: 6,
         orderBy: { createdAt: "desc" },
         include: {
@@ -56,7 +64,8 @@ export async function GET(req: Request) {
             select: { title: true, amount: true }
           }
         }
-      })
+      }),
+      isSuperAdmin ? prisma.user.count({ where: { role: "ADMIN" } }) : Promise.resolve(0)
     ]);
 
     const totalDisbursed = totalDisbursedAgg._sum.amount || 0;
@@ -85,7 +94,9 @@ export async function GET(req: Request) {
         pendingLoansCount,
         totalDisbursed,
         totalRepaid,
-        recoveryRate
+        recoveryRate,
+        subAdminsCount,
+        isSuperAdmin
       },
       chartData,
       recentLoans,

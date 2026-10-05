@@ -6,22 +6,41 @@ import { sendLoanNotification } from "@/lib/mailer";
 
 export async function GET(req: Request) {
   try {
-    const { admin, errorResponse } = await requireAdmin(req);
+    const { admin, isSuperAdmin, errorResponse } = await requireAdmin(req);
     if (errorResponse) return errorResponse;
 
     const url = new URL(req.url);
     const status = url.searchParams.get("status");
+    const agentId = url.searchParams.get("agentId");
 
     const whereClause: any = {};
     if (status && status !== "ALL") {
       whereClause.status = status;
     }
 
+    // Scoping multi-admin : un sous-administrateur ne voit que les prêts de ses propres clients
+    if (!isSuperAdmin) {
+      whereClause.user = { assignedAdminId: admin.id };
+    } else if (agentId && agentId !== "ALL") {
+      whereClause.user = { assignedAdminId: agentId };
+    }
+
     const loans = await prisma.loan.findMany({
       where: whereClause,
       include: {
         user: {
-          select: { id: true, name: true, email: true, phone: true, creditScore: true, creditLimit: true }
+          select: { 
+            id: true, 
+            name: true, 
+            email: true, 
+            phone: true, 
+            creditScore: true, 
+            creditLimit: true,
+            assignedAdminId: true,
+            assignedAdmin: {
+              select: { id: true, name: true, adminCode: true }
+            }
+          }
         },
         package: true,
         installments: {
@@ -43,7 +62,7 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const { admin, errorResponse } = await requireAdmin(req);
+    const { admin, isSuperAdmin, errorResponse } = await requireAdmin(req);
     if (errorResponse) return errorResponse;
 
     const body = await req.json();
@@ -75,6 +94,14 @@ export async function PUT(req: Request) {
 
     if (!loan) {
       return NextResponse.json({ error: "Prêt introuvable." }, { status: 404 });
+    }
+
+    // Sécurité Multi-Admin : Un sous-administrateur ne peut agir que sur ses propres clients
+    if (!isSuperAdmin && loan.user.assignedAdminId !== admin.id) {
+      return NextResponse.json(
+        { error: "Ce prêt appartient à un emprunteur géré par un autre gestionnaire." },
+        { status: 403 }
+      );
     }
 
     const updateData: any = {};

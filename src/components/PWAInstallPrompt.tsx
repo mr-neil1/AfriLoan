@@ -88,7 +88,7 @@ export default function PWAInstallPrompt() {
     <>
       {/* Floating Install Prompt Banner (Visible on mobile & desktop if not dismissed) */}
       {showPrompt && (
-        <div className="fixed bottom-28 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-40 animate-slideUp">
+        <div className="fixed bottom-24 sm:bottom-6 left-3 right-3 sm:left-auto sm:right-6 sm:max-w-md z-35 animate-slideUp">
           <div className="rounded-2xl bg-gradient-to-r from-slate-950 via-[#0A2617] to-slate-950 border border-emerald-500/40 p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl relative flex items-center gap-3 text-white">
             
             <button

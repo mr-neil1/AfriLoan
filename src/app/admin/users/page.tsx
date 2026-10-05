@@ -17,9 +17,11 @@ import {
   Phone,
   Mail,
   UserCheck,
-  AlertCircle
+  AlertCircle,
+  Smartphone
 } from "lucide-react";
 import AdminPinModal from "@/components/admin/AdminPinModal";
+import { ALL_MOBILE_OPERATORS, getMobileMoneyLogo } from "@/lib/countriesData";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -210,6 +212,21 @@ export default function AdminUsersPage() {
                           <span>{u.name}</span>
                         </div>
                         <div className="text-[10px] text-slate-400">{u.phone || u.email}</div>
+                        {u.assignedAdmin && (
+                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-200/80 px-1.5 py-0.5 rounded-md">
+                            <span>Agent : {u.assignedAdmin.name}</span>
+                          </div>
+                        )}
+                        {u.mobileMoneyProvider && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <img 
+                              src={getMobileMoneyLogo(u.mobileMoneyProvider)} 
+                              alt="" 
+                              className="w-3.5 h-3.5 rounded object-contain bg-white p-0.5 border border-slate-200 shrink-0" 
+                            />
+                            <span className="text-[10px] text-[#064E29] font-bold truncate max-w-[120px]">{u.mobileMoneyProvider}</span>
+                          </div>
+                        )}
                       </td>
                       <td className="p-4">
                         <div className="font-semibold text-slate-800">{u.city || "Non spécifié"}</div>
@@ -383,6 +400,47 @@ export default function AdminUsersPage() {
                       <option value="USD">USD (Dollar US)</option>
                     </select>
                   </div>
+                </div>
+              </div>
+
+              {/* Mobile Money Operator Settings */}
+              <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-3">
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <Smartphone className="w-4 h-4 text-emerald-700" />
+                  <span>Opérateur & Numéro Mobile Money</span>
+                </h4>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+                  {ALL_MOBILE_OPERATORS.map((op) => (
+                    <button
+                      key={op.id}
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, mobileMoneyProvider: op.id })}
+                      className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5 cursor-pointer ${
+                        editFormData.mobileMoneyProvider === op.id
+                          ? "border-[#064E29] bg-emerald-50 text-[#064E29] font-bold shadow-xs ring-1 ring-[#064E29]"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="w-7 h-7 rounded-lg bg-white border border-slate-100 p-0.5 flex items-center justify-center overflow-hidden">
+                        <img src={op.logoUrl} alt={op.name} className="w-full h-full object-contain" />
+                      </div>
+                      <span className="text-[10px] font-bold truncate w-full">{op.name}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    Numéro Mobile Money (pour déboursement & prélèvements)
+                  </label>
+                  <input
+                    type="tel"
+                    value={editFormData.mobileMoneyNumber}
+                    onChange={(e) => setEditFormData({ ...editFormData, mobileMoneyNumber: e.target.value })}
+                    placeholder="+225 07 00 00 00 00"
+                    className="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#064E29]"
+                  />
                 </div>
               </div>
 

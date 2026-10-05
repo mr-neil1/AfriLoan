@@ -4,10 +4,21 @@ import { requireAdmin, verifyAdminPin } from "@/lib/adminAuth";
 
 export async function GET(req: Request) {
   try {
-    const { admin, errorResponse } = await requireAdmin(req);
+    const { admin, isSuperAdmin, errorResponse } = await requireAdmin(req);
     if (errorResponse) return errorResponse;
 
+    const url = new URL(req.url);
+    const agentId = url.searchParams.get("agentId");
+
+    const whereClause: any = {};
+    if (!isSuperAdmin) {
+      whereClause.assignedAdminId = admin.id;
+    } else if (agentId && agentId !== "ALL") {
+      whereClause.assignedAdminId = agentId;
+    }
+
     const users = await prisma.user.findMany({
+      where: whereClause,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -38,6 +49,10 @@ export async function GET(req: Request) {
         emergencyContactRel: true,
         kycStatus: true,
         createdAt: true,
+        assignedAdminId: true,
+        assignedAdmin: {
+          select: { id: true, name: true, email: true, adminCode: true }
+        },
         _count: {
           select: { loans: true, kycDocuments: true, bankAccounts: true }
         },
@@ -70,7 +85,7 @@ export async function GET(req: Request) {
 
 export async function PUT(req: Request) {
   try {
-    const { admin, errorResponse } = await requireAdmin(req);
+    const { admin, isSuperAdmin, errorResponse } = await requireAdmin(req);
     if (errorResponse) return errorResponse;
 
     const body = await req.json();
@@ -80,11 +95,27 @@ export async function PUT(req: Request) {
       countryCode, city, address, latitude, longitude,
       profession, monthlyIncome, emergencyContactName, emergencyContactPhone, emergencyContactRel,
       kycStatus, mobileMoneyProvider, mobileMoneyNumber, currency,
+      assignedAdminId,
       pin, autoRecalculateScore
     } = body;
 
     if (!userId) {
       return NextResponse.json({ error: "ID utilisateur requis." }, { status: 400 });
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+    if (!targetUser) {
+      return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 });
+    }
+
+    // Sécurité Multi-Admin : Un sous-administrateur ne peut modifier que ses propres clients
+    if (!isSuperAdmin && targetUser.assignedAdminId !== admin.id) {
+      return NextResponse.json(
+        { error: "Vous n'avez pas l'autorisation de modifier cet utilisateur." },
+        { status: 403 }
+      );
     }
 
     if (creditLimit !== undefined || walletBalance !== undefined) {
@@ -98,7 +129,7 @@ export async function PUT(req: Request) {
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
-    if (role !== undefined) updateData.role = role;
+    if (role !== undefined && isSuperAdmin) updateData.role = role;
     if (currency !== undefined) updateData.currency = currency;
     if (countryCode !== undefined) updateData.countryCode = countryCode;
     if (city !== undefined) updateData.city = city;
@@ -117,6 +148,11 @@ export async function PUT(req: Request) {
     if (creditScore !== undefined) updateData.creditScore = Number(creditScore);
     if (availableCredit !== undefined) updateData.availableCredit = Number(availableCredit);
     if (walletBalance !== undefined) updateData.walletBalance = Number(walletBalance);
+
+    // Seul le Super Admin peut réassigner un client à un autre administrateur
+    if (assignedAdminId !== undefined && isSuperAdmin) {
+      updateData.assignedAdminId = assignedAdminId || null;
+    }
 
     let user = await prisma.user.update({
       where: { id: userId },

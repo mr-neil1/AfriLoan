@@ -580,6 +580,61 @@ export function calculateRequiredBalance(amount: number): {
   };
 }
 
+export const ALL_MOBILE_OPERATORS = [
+  { id: "ORANGE_MONEY", name: "Orange Money", logoUrl: "/logo-OM.png", color: "#FF7900", badgeColor: "bg-[#FF7900]", note: "CI, CM, SN, RDC, ML, BF" },
+  { id: "MTN_MOMO", name: "MTN MoMo", logoUrl: "/logo-momo.png", color: "#FFCC00", badgeColor: "bg-[#FFCC00]", note: "CI, CM, BJ" },
+  { id: "WAVE", name: "Wave", logoUrl: "/logo-wave.jpg", color: "#1DC3F3", badgeColor: "bg-[#1DC3F3]", note: "CI, SN, ML, BF" },
+  { id: "MOOV_MONEY", name: "Moov Money", logoUrl: "/logo-Moov-Money.png", color: "#005BAA", badgeColor: "bg-[#005BAA]", note: "CI, BJ, TG, BF" },
+  { id: "AIRTEL_MONEY", name: "Airtel Money", logoUrl: "/logo-airtel.png", color: "#ED1C24", badgeColor: "bg-[#ED1C24]", note: "GA, RDC, CG" },
+  { id: "FREE_MONEY", name: "Free Money", logoUrl: "/logo-free-money.png", color: "#E2001A", badgeColor: "bg-[#E2001A]", note: "Sénégal" },
+  { id: "TMONEY", name: "T-Money", logoUrl: "/logo-tmoney.webp", color: "#008751", badgeColor: "bg-[#008751]", note: "Togo" },
+];
+
+export function getMobileMoneyLogo(provider?: string | null): string {
+  if (!provider) return "/logo-OM.png";
+  const p = provider.toLowerCase().replace(/[\s\-_]/g, "");
+  if (p.includes("orange") || p.includes("om")) return "/logo-OM.png";
+  if (p.includes("mtn") || p.includes("momo")) return "/logo-momo.png";
+  if (p.includes("wave")) return "/logo-wave.jpg";
+  if (p.includes("moov")) return "/logo-Moov-Money.png";
+  if (p.includes("airtel")) return "/logo-airtel.png";
+  if (p.includes("free")) return "/logo-free-money.png";
+  if (p.includes("tmoney") || p.includes("togo")) return "/logo-tmoney.webp";
+  if (p.includes("mpesa") || p.includes("vodacom")) return "/logo-momo.png";
+  return "/logo-OM.png";
+}
+
+export function getPaymentMethodVisual(identifier?: string | null): {
+  logoUrl: string;
+  displayName: string;
+  brandColor: string;
+  badgeBg: string;
+} {
+  const norm = (identifier || "").toLowerCase().replace(/[\s\-_]/g, "");
+  if (norm.includes("orange") || norm === "om") {
+    return { logoUrl: "/logo-OM.png", displayName: "Orange Money", brandColor: "#FF7900", badgeBg: "bg-orange-50 text-orange-800 border-orange-200" };
+  }
+  if (norm.includes("mtn") || norm.includes("momo")) {
+    return { logoUrl: "/logo-momo.png", displayName: "MTN MoMo", brandColor: "#FFCC00", badgeBg: "bg-amber-50 text-amber-900 border-amber-200" };
+  }
+  if (norm.includes("wave")) {
+    return { logoUrl: "/logo-wave.jpg", displayName: "Wave", brandColor: "#1DC3F3", badgeBg: "bg-sky-50 text-sky-800 border-sky-200" };
+  }
+  if (norm.includes("moov")) {
+    return { logoUrl: "/logo-Moov-Money.png", displayName: "Moov Money", brandColor: "#005BAA", badgeBg: "bg-blue-50 text-blue-800 border-blue-200" };
+  }
+  if (norm.includes("airtel")) {
+    return { logoUrl: "/logo-airtel.png", displayName: "Airtel Money", brandColor: "#ED1C24", badgeBg: "bg-red-50 text-red-800 border-red-200" };
+  }
+  if (norm.includes("free")) {
+    return { logoUrl: "/logo-free-money.png", displayName: "Free Money", brandColor: "#E2001A", badgeBg: "bg-rose-50 text-rose-800 border-rose-200" };
+  }
+  if (norm.includes("tmoney") || norm.includes("togo")) {
+    return { logoUrl: "/logo-tmoney.webp", displayName: "T-Money", brandColor: "#008751", badgeBg: "bg-emerald-50 text-emerald-800 border-emerald-200" };
+  }
+  return { logoUrl: "/logo-OM.png", displayName: identifier || "Mobile Money", brandColor: "#064E29", badgeBg: "bg-emerald-50 text-emerald-800 border-emerald-200" };
+}
+
 export function getPaymentMethodById(methodId?: string | null, countryCode?: string | null): PaymentMethodInfo | undefined {
   if (!methodId) return undefined;
   const norm = methodId.toLowerCase();
@@ -591,11 +646,33 @@ export function getPaymentMethodById(methodId?: string | null, countryCode?: str
     if (found) return found;
   }
 
-  // Sinon chercher globalement
+  // Chercher par alias normalisé
+  const cleanKey = norm.replace(/[\s\-_]/g, "");
   for (const country of Object.values(COUNTRIES_CONFIG)) {
-    const found = country.paymentMethods.find(m => m.id.toLowerCase() === norm || m.id.toLowerCase().includes(norm));
+    const found = country.paymentMethods.find(m => {
+      const mClean = m.id.toLowerCase().replace(/[\s\-_]/g, "");
+      return mClean === cleanKey || m.id.toLowerCase() === norm || mClean.includes(cleanKey) || cleanKey.includes(mClean);
+    });
     if (found) return found;
   }
+
+  // Chercher dans ALL_MOBILE_OPERATORS
+  const fallback = ALL_MOBILE_OPERATORS.find(op => {
+    const opClean = op.id.toLowerCase().replace(/[\s\-_]/g, "");
+    return opClean === cleanKey || op.name.toLowerCase().includes(norm);
+  });
+  if (fallback) {
+    return {
+      id: fallback.id,
+      name: fallback.name,
+      category: "MOBILE_MONEY",
+      iconName: "Smartphone",
+      logoUrl: fallback.logoUrl,
+      color: fallback.color,
+      pinLength: 4
+    };
+  }
+
   return undefined;
 }
 

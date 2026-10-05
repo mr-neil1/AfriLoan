@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import DepositPinModal from "@/components/deposit/DepositPinModal";
+import { ALL_MOBILE_OPERATORS, getMobileMoneyLogo, getPaymentMethodVisual } from "@/lib/countriesData";
+import { invalidateCachePattern } from "@/lib/storageCache";
 
 function RepayContent() {
   const router = useRouter();
@@ -132,6 +134,12 @@ function RepayContent() {
       setIsPinModalOpen(false);
       setSuccessData(data);
       setIsSuccess(true);
+
+      // Invalidate caches so loans, stats, and dashboard update in background
+      invalidateCachePattern("user_");
+      invalidateCachePattern("dashboard");
+      invalidateCachePattern("loans");
+      invalidateCachePattern("history");
     } catch (err: any) {
       setError(err.message);
       setIsPinModalOpen(false);
@@ -336,27 +344,22 @@ function RepayContent() {
               Moyen de paiement Mobile Money
             </h3>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {[
-                { id: "ORANGE_MONEY", name: "Orange Money", color: "bg-[#FF6600]" },
-                { id: "MTN_MOMO", name: "MTN MoMo", color: "bg-[#FFCC00] text-slate-900" },
-                { id: "WAVE", name: "Wave", color: "bg-[#1DA1F2]" },
-                { id: "AIRTEL_MONEY", name: "Airtel Money", color: "bg-[#ED1C24]" }
-              ].map((op) => (
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+              {ALL_MOBILE_OPERATORS.map((op) => (
                 <button
                   key={op.id}
                   type="button"
                   onClick={() => setPaymentMethod(op.id)}
-                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                  className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-2 group cursor-pointer ${
                     paymentMethod === op.id
-                      ? "border-[#064E29] bg-emerald-50 text-[#064E29] font-bold shadow-sm"
-                      : "border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                      ? "border-[#064E29] bg-emerald-50 text-[#064E29] font-bold shadow-sm ring-2 ring-[#064E29]/20"
+                      : "border-slate-200/90 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
                   }`}
                 >
-                  <div className={`w-8 h-8 rounded-xl ${op.color} flex items-center justify-center font-black text-xs text-white`}>
-                    {op.name.slice(0, 2)}
+                  <div className="w-11 h-11 rounded-xl bg-white border border-slate-200 p-1 flex items-center justify-center shadow-xs overflow-hidden group-hover:scale-105 transition-transform">
+                    <img src={op.logoUrl} alt={op.name} className="w-full h-full object-contain" />
                   </div>
-                  <span className="text-xs">{op.name}</span>
+                  <span className="text-[11px] font-extrabold leading-tight">{op.name}</span>
                 </button>
               ))}
             </div>
@@ -380,8 +383,11 @@ function RepayContent() {
           <button
             type="submit"
             disabled={isLoading || !selectedLoan || effectiveAmount <= 0}
-            className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:opacity-95 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-amber-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-4 bg-gradient-to-r from-amber-500 to-amber-600 hover:opacity-95 text-slate-950 font-black text-sm sm:text-base rounded-2xl shadow-xl shadow-amber-600/20 transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 cursor-pointer active:scale-98"
           >
+            <div className="w-6 h-6 rounded-lg bg-white p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+              <img src={getMobileMoneyLogo(paymentMethod)} alt="" className="w-full h-full object-contain" />
+            </div>
             <span>Payer {effectiveAmount.toLocaleString("fr-FR")} FCFA par {paymentMethod}</span>
             <ArrowRight className="w-5 h-5 text-slate-950" />
           </button>

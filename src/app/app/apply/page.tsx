@@ -35,9 +35,11 @@ import {
   getAllCountries,
   calculateRequiredBalance,
   PaymentMethodInfo,
-  detectCountryFromPhone
+  detectCountryFromPhone,
+  getMobileMoneyLogo
 } from "@/lib/countriesData";
 import MobileMoneyPinModal from "@/components/loans/MobileMoneyPinModal";
+import { invalidateCachePattern, getCachedData, setCachedData } from "@/lib/storageCache";
 
 type ApplyStep = "STEP_OFFERS" | "STEP_PURPOSE" | "STEP_DISBURSEMENT" | "STEP_SOLVENCY" | "STEP_CONFIRMATION";
 
@@ -141,6 +143,16 @@ function ApplyLoanContent() {
       const token = localStorage.getItem("afriloan_token");
       if (!token) return router.replace("/auth");
 
+      // Load cached packages and user first for instant UI
+      const cachedPkgs = getCachedData<any[]>("packages_list");
+      if (cachedPkgs && cachedPkgs.length > 0) {
+        setPackages(cachedPkgs);
+      }
+      const cachedUser = getCachedData<any>("me_user");
+      if (cachedUser) {
+        setUser(cachedUser);
+      }
+
       const [meRes, pkgRes] = await Promise.all([
         fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/packages")
@@ -151,6 +163,7 @@ function ApplyLoanContent() {
         const meData = await meRes.json();
         currentUser = meData.user;
         setUser(currentUser);
+        setCachedData("me_user", currentUser);
       }
 
       let loadedPackages: any[] = [];
@@ -158,6 +171,7 @@ function ApplyLoanContent() {
         const pkgData = await pkgRes.json();
         loadedPackages = pkgData.packages || [];
         setPackages(loadedPackages);
+        setCachedData("packages_list", loadedPackages);
       }
 
       // Check Saved Draft from localStorage
@@ -434,6 +448,13 @@ function ApplyLoanContent() {
       setIsSuccess(true);
       setCurrentStep("STEP_CONFIRMATION");
       localStorage.removeItem(DRAFT_STORAGE_KEY);
+
+      // Invalidate caches so other pages update in background
+      invalidateCachePattern("user_");
+      invalidateCachePattern("dashboard");
+      invalidateCachePattern("loans");
+      invalidateCachePattern("history");
+
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: any) {
       setError(err.message);
@@ -475,10 +496,12 @@ function ApplyLoanContent() {
             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
               <span className="text-slate-500">Moyen de réception</span>
               <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                {selectedProviderObj?.logoUrl && (
-                  <img src={selectedProviderObj.logoUrl} alt="" className="w-4 h-4 object-contain" />
-                )}
-                <span>{loan.disbursementMethod} ({loan.disbursementPhone})</span>
+                <img 
+                  src={selectedProviderObj?.logoUrl || getMobileMoneyLogo(loan.disbursementMethod)} 
+                  alt="" 
+                  className="w-4 h-4 object-contain bg-white rounded p-0.5 border border-slate-200 shrink-0 shadow-2xs" 
+                />
+                <span>{selectedProviderObj?.name || loan.disbursementMethod} ({loan.disbursementPhone})</span>
               </span>
             </div>
             <div className="flex justify-between items-center pb-2 border-b border-slate-200">
@@ -590,6 +613,12 @@ function ApplyLoanContent() {
 
         {/* Stepper Progress Bar */}
         <div className="pt-2">
+          {/* Mobile Step Indicator Header */}
+          <div className="sm:hidden flex items-center justify-between text-xs font-black mb-2 text-slate-800">
+            <span>Étape {currentStepIndex + 1} sur {stepsList.length}</span>
+            <span className="text-emerald-700">{stepsList[currentStepIndex]?.label}</span>
+          </div>
+
           <div className="grid grid-cols-4 gap-2 text-center">
             {stepsList.map((step, idx) => {
               const isActive = step.id === currentStep;
@@ -962,11 +991,11 @@ function ApplyLoanContent() {
                       }`}
                   >
                     <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-center shrink-0 overflow-hidden p-1">
-                      {m.logoUrl ? (
-                        <img src={m.logoUrl} alt={m.name} className="w-full h-full object-contain" />
-                      ) : (
-                        <Smartphone className="w-6 h-6 text-slate-700" />
-                      )}
+                      <img 
+                        src={m.logoUrl || getMobileMoneyLogo(m.id || m.name)} 
+                        alt={m.name} 
+                        className="w-full h-full object-contain" 
+                      />
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -1191,9 +1220,17 @@ function ApplyLoanContent() {
               <span>Récapitulatif de souscription</span>
               <span className="text-white text-sm">{activeAmount.toLocaleString("fr-FR")} FCFA</span>
             </div>
-            <div className="flex justify-between text-slate-300 text-[11px]">
+            <div className="flex justify-between items-center text-slate-300 text-[11px]">
               <span>Moyen de réception</span>
-              <span>{selectedProviderObj?.name} ({currentCountry.phonePrefix} {phoneNumber})</span>
+              <span className="inline-flex items-center gap-1.5 font-bold text-white bg-white/10 px-2 py-0.5 rounded-lg border border-white/10">
+                <img 
+                  src={selectedProviderObj?.logoUrl || getMobileMoneyLogo(selectedProviderObj?.id || selectedProviderObj?.name)} 
+                  alt="" 
+                  className="w-3.5 h-3.5 rounded object-contain bg-white p-0.5" 
+                />
+                <span>{selectedProviderObj?.name}</span>
+                <span className="text-emerald-300 font-mono">({currentCountry.phonePrefix} {phoneNumber})</span>
+              </span>
             </div>
             <div className="flex justify-between text-slate-300 text-[11px]">
               <span>Motif</span>

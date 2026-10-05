@@ -21,42 +21,45 @@ import {
 } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "recharts";
 import LoanStatusModal from "@/components/loans/LoanStatusModal";
+import { getMobileMoneyLogo, getPaymentMethodVisual } from "@/lib/countriesData";
+import { useSwrLocalCache } from "@/lib/storageCache";
 
 export default function DashboardPage() {
-  const [data, setData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedLoanForStatus, setSelectedLoanForStatus] = useState<any | null>(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  const fetchDashboard = async () => {
-    try {
-      const token = localStorage.getItem("afriloan_token");
-      if (!token) {
-        window.location.href = "/auth";
-        return;
-      }
-
-      const res = await fetch("/api/dashboard", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        throw new Error("Erreur de chargement du tableau de bord");
-      }
-
-      const json = await res.json();
-      setData(json);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+  // Fetcher for dashboard data with auth check
+  const fetchDashboardData = async () => {
+    const token = localStorage.getItem("afriloan_token");
+    if (!token) {
+      window.location.href = "/auth";
+      throw new Error("Non authentifié");
     }
+
+    const res = await fetch("/api/dashboard", {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+      throw new Error("Erreur de chargement du tableau de bord");
+    }
+
+    return await res.json();
   };
+
+  // Stale-While-Revalidate: Instant render from localStorage, syncs with DB in background!
+  const {
+    data,
+    isLoading,
+    isRevalidating,
+    error,
+    refresh: fetchDashboard,
+    mutate
+  } = useSwrLocalCache<any>({
+    cacheKey: "user_dashboard_cache",
+    fetcher: fetchDashboardData,
+    ttlMs: 1000 * 60 * 15 // 15 minutes TTL
+  });
 
   const markNotificationRead = async (id: string) => {
     try {
@@ -75,7 +78,7 @@ export default function DashboardPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
         <span className="loading loading-spinner loading-lg text-[#064E29]"></span>
@@ -84,7 +87,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (error || !data) {
+  if (error && !data) {
     return (
       <div className="p-6 bg-rose-50 border border-rose-200 text-rose-800 rounded-3xl max-w-md mx-auto text-center mt-12">
         <AlertTriangle className="w-10 h-10 text-rose-500 mx-auto mb-3" />
@@ -92,7 +95,7 @@ export default function DashboardPage() {
         <p className="text-xs text-rose-600 mb-4">{error}</p>
         <button
           onClick={fetchDashboard}
-          className="px-5 py-2 bg-rose-600 text-white font-bold text-xs rounded-xl shadow-sm hover:bg-rose-700"
+          className="px-5 py-2 bg-rose-600 text-white font-bold text-xs rounded-xl shadow-sm hover:bg-rose-700 cursor-pointer"
         >
           Réessayer
         </button>
@@ -115,9 +118,18 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-black text-slate-900">
             Bonjour, {user.name} 👋
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Opérateur de paiement : <span className="font-bold text-[#064E29]">{user.mobileMoneyProvider || "Orange Money"}</span> ({user.mobileMoneyNumber || "Non configuré"})
-          </p>
+          <div className="text-xs text-slate-500 mt-1.5 flex items-center gap-2 flex-wrap">
+            <span>Opérateur :</span>
+            <span className="inline-flex items-center gap-1.5 font-extrabold text-[#064E29] bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-100 shadow-xs">
+              <img 
+                src={getMobileMoneyLogo(user.mobileMoneyProvider)} 
+                alt="" 
+                className="w-4 h-4 rounded-md object-contain bg-white p-0.5 border border-slate-200" 
+              />
+              <span>{user.mobileMoneyProvider || "Orange Money"}</span>
+            </span>
+            <span className="text-slate-400 font-mono text-[11px]">({user.mobileMoneyNumber || "Non configuré"})</span>
+          </div>
         </div>
 
         {/* Credit Score Badge */}
@@ -467,21 +479,30 @@ export default function DashboardPage() {
           <p className="text-xs text-slate-400 text-center py-6">Aucune transaction enregistrée pour le moment.</p>
         ) : (
           <div className="space-y-2.5">
-            {recentHistory.map((item: any) => (
-              <div key={item.id} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-bold text-slate-800">{item.description}</div>
-                  <div className="text-[10px] text-slate-400">
-                    {new Date(item.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+            {recentHistory.map((item: any) => {
+              const visual = getPaymentMethodVisual(item.description);
+              const isDisbursed = item.type === "LOAN_DISBURSEMENT";
+              return (
+                <div key={item.id} className="p-3 sm:p-3.5 rounded-2xl bg-slate-50/80 hover:bg-slate-100/70 border border-slate-100 flex items-center justify-between text-xs transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 p-1 flex items-center justify-center shrink-0 shadow-2xs">
+                      <img src={visual.logoUrl} alt={visual.displayName} className="w-full h-full object-contain" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-slate-900 truncate">{item.description}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {new Date(item.date).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </div>
                   </div>
+                  {item.amount && (
+                    <div className={`font-black text-sm text-right shrink-0 pl-2 ${isDisbursed ? "text-emerald-700" : "text-slate-900"}`}>
+                      {isDisbursed ? "+" : "-"}{item.amount.toLocaleString("fr-FR")} FCFA
+                    </div>
+                  )}
                 </div>
-                {item.amount && (
-                  <div className={`font-black text-sm ${item.type === "LOAN_DISBURSEMENT" ? "text-emerald-700" : "text-amber-600"}`}>
-                    {item.type === "LOAN_DISBURSEMENT" ? "+" : "-"}{item.amount.toLocaleString("fr-FR")} FCFA
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

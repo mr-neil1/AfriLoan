@@ -33,7 +33,12 @@ model User {
   commissionBalance   Float     @default(0)      // Solde commissions non retiré
   currency            String    @default("XOF")
   language            String    @default("fr")
-  role                String    @default("USER") // "USER" or "ADMIN"
+  role                String    @default("USER") // "USER", "ADMIN", "SUPER_ADMIN"
+
+  // Système Multi-Admin & Gestion de Portefeuille Clients
+  adminCode           String?   @unique          // Code personnalisé de l'agent/admin (ex: "AGENT-01", "AL-NEIL") pour son lien exclusif
+  assignedAdminId     String?                    // ID de l'admin / gestionnaire auquel ce client est rattaché
+  adminStatus         String?   @default("ACTIVE") // "ACTIVE" ou "SUSPENDED" pour les sous-administrateurs
 
   // Localisation & Profil Solvabilité
   countryCode           String?   @default("CI") // "CM", "CI", "GA", "CD"
@@ -63,6 +68,8 @@ model User {
   scoreLogs     CreditScoreLog[]
   referredBy    User?          @relation("UserReferrals", fields: [referredById], references: [id])
   referrals     User[]         @relation("UserReferrals")
+  assignedAdmin User?          @relation("AdminClients", fields: [assignedAdminId], references: [id])
+  managedClients User[]        @relation("AdminClients")
 }
 
 model LoanPackage {
