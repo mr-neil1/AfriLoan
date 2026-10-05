@@ -40,6 +40,7 @@ import {
 } from "@/lib/countriesData";
 import MobileMoneyPinModal from "@/components/loans/MobileMoneyPinModal";
 import { invalidateCachePattern, getCachedData, setCachedData } from "@/lib/storageCache";
+import { useCustomerSupport, buildWhatsAppMessageLink } from "@/lib/support";
 
 type ApplyStep = "STEP_OFFERS" | "STEP_PURPOSE" | "STEP_DISBURSEMENT" | "STEP_SOLVENCY" | "STEP_CONFIRMATION";
 
@@ -48,6 +49,7 @@ const DRAFT_STORAGE_KEY = "afriloan_loan_apply_draft_v2";
 function ApplyLoanContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { support } = useCustomerSupport();
 
   // Navigation Steps
   const [currentStep, setCurrentStep] = useState<ApplyStep>("STEP_OFFERS");
@@ -533,21 +535,21 @@ function ApplyLoanContent() {
 
             <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
               <a
-                href={`https://wa.me/2250700000000?text=${whatsAppMessage}`}
+                href={buildWhatsAppMessageLink(support.whatsappUrl, whatsAppMessage)}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4 fill-white" />
-                <span>Validation Directe via WhatsApp</span>
+                <span>{support.isDedicatedAgent ? `Validation Directe (${support.agentName})` : "Validation Directe via WhatsApp"}</span>
               </a>
 
               <a
-                href="tel:+2250700000000"
+                href={`tel:${support.phone}`}
                 className="py-3 px-4 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <PhoneCall className="w-4 h-4 text-emerald-700" />
-                <span>Appeler le Service Client</span>
+                <span>{support.isDedicatedAgent ? `Appeler mon Conseiller (${support.phone})` : "Appeler le Service Client"}</span>
               </a>
             </div>
           </div>

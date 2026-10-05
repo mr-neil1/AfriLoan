@@ -54,6 +54,10 @@ export async function GET(req: Request) {
         emergencyContactPhone: true,
         emergencyContactRel: true,
         kycStatus: true,
+        adminCode: true,
+        supportPhone: true,
+        supportWhatsappLink: true,
+        adminStatus: true,
         createdAt: true,
       }
     });

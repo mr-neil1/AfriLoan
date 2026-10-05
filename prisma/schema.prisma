@@ -39,6 +39,8 @@ model User {
   adminCode           String?   @unique          // Code personnalisé de l'agent/admin (ex: "AGENT-01", "AL-NEIL") pour son lien exclusif
   assignedAdminId     String?                    // ID de l'admin / gestionnaire auquel ce client est rattaché
   adminStatus         String?   @default("ACTIVE") // "ACTIVE" ou "SUSPENDED" pour les sous-administrateurs
+  supportPhone        String?                    // Numéro WhatsApp / Téléphone service client dédié (spécifique à cet admin)
+  supportWhatsappLink String?                    // Lien personnalisé service client (optionnel)
 
   // Localisation & Profil Solvabilité
   countryCode           String?   @default("CI") // "CM", "CI", "GA", "CD"
@@ -244,4 +246,11 @@ model CreditScoreLog {
   createdAt    DateTime @default(now())
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SystemSetting {
+  key         String   @id
+  value       String   @db.Text
+  description String?
+  updatedAt   DateTime @updatedAt
 }

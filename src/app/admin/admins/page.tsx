@@ -18,7 +18,13 @@ import {
   ExternalLink,
   X,
   Lock,
-  Sparkles
+  Sparkles,
+  Phone,
+  MessageCircle,
+  Headphones,
+  Settings,
+  Save,
+  Edit3
 } from "lucide-react";
 
 interface AdminItem {
@@ -34,6 +40,8 @@ interface AdminItem {
   activeLoansCount: number;
   totalDisbursed: number;
   totalRepaid: number;
+  supportPhone?: string | null;
+  supportWhatsappLink?: string | null;
 }
 
 export default function AdminManagementPage() {
@@ -42,6 +50,20 @@ export default function AdminManagementPage() {
   const [search, setSearch] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Global Customer Service state (Super Admin)
+  const [globalPhone, setGlobalPhone] = useState("+2250700000000");
+  const [globalWhatsappUrl, setGlobalWhatsappUrl] = useState("https://wa.me/2250700000000");
+  const [globalSaving, setGlobalSaving] = useState(false);
+  const [globalSaved, setGlobalSaved] = useState(false);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+
+  // Edit individual admin support state
+  const [editingAdminSupport, setEditingAdminSupport] = useState<AdminItem | null>(null);
+  const [editSupportPhone, setEditSupportPhone] = useState("");
+  const [editSupportWhatsappLink, setEditSupportWhatsappLink] = useState("");
+  const [editSupportSaving, setEditSupportSaving] = useState(false);
+  const [editSupportError, setEditSupportError] = useState<string | null>(null);
+
   // Modal create state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newName, setNewName] = useState("");
@@ -49,6 +71,7 @@ export default function AdminManagementPage() {
   const [newPassword, setNewPassword] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newAdminCode, setNewAdminCode] = useState("");
+  const [newSupportPhone, setNewSupportPhone] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -60,12 +83,24 @@ export default function AdminManagementPage() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("afriloan_token");
-      const res = await fetch("/api/admin/admins", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
+      const [adminsRes, supportRes] = await Promise.all([
+        fetch("/api/admin/admins", {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch("/api/support?mode=settings", {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      if (adminsRes.ok) {
+        const data = await adminsRes.json();
         setAdmins(data.admins || []);
+      }
+
+      if (supportRes.ok) {
+        const supData = await supportRes.json();
+        if (supData.global?.phone) setGlobalPhone(supData.global.phone);
+        if (supData.global?.whatsappUrl) setGlobalWhatsappUrl(supData.global.whatsappUrl);
       }
     } catch (e) {
       console.error(e);
@@ -140,6 +175,79 @@ export default function AdminManagementPage() {
     }
   };
 
+  const handleSaveGlobalSupport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setGlobalSaving(true);
+    setGlobalSaved(false);
+    setGlobalError(null);
+
+    try {
+      const token = localStorage.getItem("afriloan_token");
+      const res = await fetch("/api/support", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          isGlobal: true,
+          supportPhone: globalPhone,
+          supportWhatsappLink: globalWhatsappUrl
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur de mise à jour");
+
+      setGlobalSaved(true);
+      setTimeout(() => setGlobalSaved(false), 3000);
+    } catch (err: any) {
+      setGlobalError(err.message);
+    } finally {
+      setGlobalSaving(false);
+    }
+  };
+
+  const handleOpenEditSupport = (adm: AdminItem) => {
+    setEditingAdminSupport(adm);
+    setEditSupportPhone(adm.supportPhone || adm.phone || "");
+    setEditSupportWhatsappLink(adm.supportWhatsappLink || "");
+    setEditSupportError(null);
+  };
+
+  const handleSaveAdminSupport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAdminSupport) return;
+    setEditSupportSaving(true);
+    setEditSupportError(null);
+
+    try {
+      const token = localStorage.getItem("afriloan_token");
+      const res = await fetch("/api/support", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          targetAdminId: editingAdminSupport.id,
+          supportPhone: editSupportPhone,
+          supportWhatsappLink: editSupportWhatsappLink
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur de mise à jour");
+
+      setEditingAdminSupport(null);
+      fetchAdmins();
+    } catch (err: any) {
+      setEditSupportError(err.message);
+    } finally {
+      setEditSupportSaving(false);
+    }
+  };
+
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateError(null);
@@ -158,7 +266,8 @@ export default function AdminManagementPage() {
           email: newEmail,
           password: newPassword,
           phone: newPhone,
-          adminCode: newAdminCode
+          adminCode: newAdminCode,
+          supportPhone: newSupportPhone
         })
       });
 
@@ -173,6 +282,7 @@ export default function AdminManagementPage() {
       setNewPassword("");
       setNewPhone("");
       setNewAdminCode("");
+      setNewSupportPhone("");
       fetchAdmins();
     } catch (err: any) {
       setCreateError(err.message);
@@ -218,6 +328,95 @@ export default function AdminManagementPage() {
           <Plus className="w-4 h-4" />
           <span>Ajouter un Administrateur</span>
         </button>
+      </div>
+
+      {/* Super Admin Global Customer Service Configuration */}
+      <div className="bg-gradient-to-br from-slate-900 to-[#04361C] p-6 rounded-3xl border border-emerald-800/40 text-white shadow-xl relative overflow-hidden">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-400/20 text-amber-300 rounded-full text-[11px] font-extrabold mb-2 border border-amber-400/30">
+              <Headphones className="w-3.5 h-3.5 text-amber-400" />
+              <span>Configuration Super Admin</span>
+            </div>
+            <h2 className="text-xl font-black text-white flex items-center gap-2">
+              <span>Service Client Global de la Plateforme</span>
+            </h2>
+            <p className="text-xs text-emerald-100/80 mt-1 leading-relaxed">
+              Ce contact WhatsApp et téléphonique s'applique à tous les emprunteurs non rattachés à un agent spécifique ainsi qu'aux visiteurs publics de la plateforme.
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveGlobalSupport} className="flex-1 max-w-xl bg-slate-950/40 p-4 rounded-2xl border border-emerald-600/30 space-y-3">
+            {globalError && (
+              <div className="p-2.5 bg-rose-950/60 border border-rose-500/50 rounded-xl text-xs text-rose-200 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{globalError}</span>
+              </div>
+            )}
+
+            {globalSaved && (
+              <div className="p-2.5 bg-emerald-950/60 border border-emerald-400/50 rounded-xl text-xs text-emerald-200 flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Paramètres du service client global enregistrés avec succès !</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-emerald-200 mb-1">
+                  Numéro WhatsApp Principal
+                </label>
+                <div className="relative">
+                  <Phone className="w-3.5 h-3.5 absolute left-3 top-3 text-emerald-400" />
+                  <input
+                    type="tel"
+                    required
+                    value={globalPhone}
+                    onChange={(e) => setGlobalPhone(e.target.value)}
+                    placeholder="+225 07 00 00 00 00"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-emerald-800 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-emerald-200 mb-1">
+                  Lien WhatsApp Direct
+                </label>
+                <div className="relative">
+                  <MessageCircle className="w-3.5 h-3.5 absolute left-3 top-3 text-emerald-400" />
+                  <input
+                    type="url"
+                    value={globalWhatsappUrl}
+                    onChange={(e) => setGlobalWhatsappUrl(e.target.value)}
+                    placeholder="https://wa.me/2250700000000"
+                    className="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-emerald-800 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[10px] text-emerald-200/60">
+                Géré exclusivement par le Super Admin
+              </span>
+              <button
+                type="submit"
+                disabled={globalSaving}
+                className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                {globalSaving ? (
+                  <span className="loading loading-spinner loading-xs"></span>
+                ) : (
+                  <>
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Sauvegarder</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -291,6 +490,7 @@ export default function AdminManagementPage() {
                   <th className="p-4">Administrateur</th>
                   <th className="p-4">Statut & Rôle</th>
                   <th className="p-4">Lien Personnalisé Agent</th>
+                  <th className="p-4">Service Client Dédié</th>
                   <th className="p-4">Portefeuille Clients</th>
                   <th className="p-4">Prêts Déboursés</th>
                   <th className="p-4 text-right">Actions</th>
@@ -354,6 +554,32 @@ export default function AdminManagementPage() {
                                   <span>Copier le lien complet</span>
                                 </>
                               )}
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Customer Service Dedicated */}
+                      <td className="p-4">
+                        <div className="space-y-1">
+                          {adm.supportPhone ? (
+                            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200 text-[#064E29] text-[11px] font-bold">
+                              <MessageCircle className="w-3.5 h-3.5 text-[#25D366]" />
+                              <span>{adm.supportPhone}</span>
+                            </div>
+                          ) : (
+                            <div className="text-[11px] text-slate-400 italic">
+                              Hérite du Global
+                            </div>
+                          )}
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditSupport(adm)}
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#064E29] hover:underline transition-colors cursor-pointer"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                              <span>Modifier</span>
                             </button>
                           </div>
                         </div>
@@ -492,6 +718,20 @@ export default function AdminManagementPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Numéro WhatsApp Service Client dédié</span>
+                  <span className="text-[10px] text-slate-400">Optionnel (utilisera le numéro global sinon)</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="+225 07 00 00 00 00"
+                  value={newSupportPhone}
+                  onChange={(e) => setNewSupportPhone(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#064E29]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
                   <span>Code personnalisé (Slug Agent)</span>
                   <span className="text-[10px] text-slate-400">Optionnel (généré automatiquement sinon)</span>
                 </label>
@@ -538,6 +778,110 @@ export default function AdminManagementPage() {
                 </button>
               </div>
 
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* EDIT ADMIN SUPPORT MODAL */}
+      {editingAdminSupport && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+            
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-[#04361C] to-[#0A5C36] text-white">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white/10 rounded-xl">
+                  <Headphones className="w-5 h-5 text-amber-300" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Service Client Dédié</h3>
+                  <p className="text-[11px] text-emerald-200">
+                    Portefeuille de {editingAdminSupport.name}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEditingAdminSupport(null)}
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAdminSupport} className="p-6 space-y-4">
+              {editSupportError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-800 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{editSupportError}</span>
+                </div>
+              )}
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Les clients affiliés à cet administrateur (via son lien <strong>{editingAdminSupport.adminCode}</strong>) contacteront automatiquement ce numéro WhatsApp lorsqu'ils solliciteront le support.
+              </p>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Numéro de téléphone Service Client / WhatsApp
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+                  <input
+                    type="tel"
+                    placeholder="+225 07 00 00 00 00"
+                    value={editSupportPhone}
+                    onChange={(e) => setEditSupportPhone(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#064E29]"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Laissez vide pour rétablir le numéro de service client global par défaut.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Lien WhatsApp personnalisé (Optionnel)</span>
+                </label>
+                <div className="relative">
+                  <MessageCircle className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400" />
+                  <input
+                    type="url"
+                    placeholder="https://wa.me/2250700000000"
+                    value={editSupportWhatsappLink}
+                    onChange={(e) => setEditSupportWhatsappLink(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:border-[#064E29]"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Généré automatiquement à partir du numéro de téléphone si non renseigné.
+                </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingAdminSupport(null)}
+                  className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSupportSaving}
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#064E29] to-[#0A5C36] text-white rounded-xl text-xs font-bold shadow-md hover:opacity-95 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {editSupportSaving ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Enregistrer</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
 
           </div>

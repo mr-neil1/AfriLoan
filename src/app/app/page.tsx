@@ -23,10 +23,12 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from "rec
 import LoanStatusModal from "@/components/loans/LoanStatusModal";
 import { getMobileMoneyLogo, getPaymentMethodVisual } from "@/lib/countriesData";
 import { useSwrLocalCache } from "@/lib/storageCache";
+import { useCustomerSupport, buildWhatsAppMessageLink } from "@/lib/support";
 
 export default function DashboardPage() {
   const [selectedLoanForStatus, setSelectedLoanForStatus] = useState<any | null>(null);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const { support } = useCustomerSupport();
 
   // Fetcher for dashboard data with auth check
   const fetchDashboardData = async () => {
@@ -403,15 +405,16 @@ export default function DashboardPage() {
                         </button>
 
                         <a
-                          href={`https://wa.me/2250700000000?text=${encodeURIComponent(
-                            `Bonjour Service Client AfriLoan, je souhaite faire le point sur ma demande de prêt ${loan.title} d'un montant de ${(loan.amount || 0).toLocaleString("fr-FR")} FCFA (Dossier N° AFL-${loan.id?.slice(-6).toUpperCase()}).`
-                          )}`}
+                          href={buildWhatsAppMessageLink(
+                            support.whatsappUrl,
+                            `Bonjour ${support.agentName ? support.agentName : "Service Client AfriLoan"}, je souhaite faire le point sur ma demande de prêt ${loan.title} d'un montant de ${(loan.amount || 0).toLocaleString("fr-FR")} FCFA (Dossier N° AFL-${loan.id?.slice(-6).toUpperCase()}).`
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
-                          <span>Contacter le service client</span>
+                          <span>{support.isDedicatedAgent ? `Contacter ${support.agentName}` : "Contacter le service client"}</span>
                         </a>
                       </div>
                     </div>

@@ -16,6 +16,7 @@ import {
   FileText 
 } from "lucide-react";
 import { getMobileMoneyLogo } from "@/lib/countriesData";
+import { useCustomerSupport, buildWhatsAppMessageLink } from "@/lib/support";
 
 interface LoanStatusModalProps {
   isOpen: boolean;
@@ -61,11 +62,10 @@ export default function LoanStatusModal({
   const isDisbursed = ["ACTIVE", "DISBURSED"].includes(loan.status);
   const isRejected = loan.status === "REJECTED";
 
+  const { support } = useCustomerSupport();
   const loanRef = loan.id ? `AFL-${loan.id.slice(-6).toUpperCase()}` : "AFL-DOSSIER";
-  const supportPhone = "+2250700000000";
-  const whatsAppMessage = encodeURIComponent(
-    `Bonjour Service Client AfriLoan, je souhaite faire le point sur l'état de ma demande de prêt ${loan.title} d'un montant de ${(loan.amount || 0).toLocaleString("fr-FR")} FCFA (Dossier N° ${loanRef}). Merci pour votre assistance.`
-  );
+  const whatsAppText = `Bonjour ${support.agentName}, je souhaite faire le point sur l'état de ma demande de prêt ${loan.title} d'un montant de ${(loan.amount || 0).toLocaleString("fr-FR")} FCFA (Dossier N° ${loanRef}). Merci pour votre assistance.`;
+  const whatsAppLink = buildWhatsAppMessageLink(support.whatsappUrl, whatsAppText);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn overflow-y-auto">
@@ -284,13 +284,13 @@ export default function LoanStatusModal({
         {/* Action Buttons */}
         <div className="pt-2 flex flex-col sm:flex-row gap-3">
           <a
-            href={`https://wa.me/2250700000000?text=${whatsAppMessage}`}
+            href={whatsAppLink}
             target="_blank"
             rel="noopener noreferrer"
             className="flex-1 py-3 px-4 bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             <MessageCircle className="w-4 h-4" />
-            <span>Contacter le Service Client</span>
+            <span>{support.isDedicatedAgent ? `Contacter mon Conseiller (${support.agentName})` : "Contacter le Service Client"}</span>
           </a>
 
           <button

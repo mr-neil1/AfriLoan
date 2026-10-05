@@ -22,6 +22,8 @@ export async function GET(req: Request) {
         role: true,
         adminCode: true,
         adminStatus: true,
+        supportPhone: true,
+        supportWhatsappLink: true,
         createdAt: true,
         _count: {
           select: { managedClients: true }
@@ -93,7 +95,7 @@ export async function POST(req: Request) {
     if (errorResponse) return errorResponse;
 
     const body = await req.json();
-    const { name, email, password, phone, adminCode } = body;
+    const { name, email, password, phone, adminCode, supportPhone, supportWhatsappLink } = body;
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -136,6 +138,10 @@ export async function POST(req: Request) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const cleanSupportPhone = (supportPhone || phone || "").trim();
+    const cleanSupportWhatsapp = supportWhatsappLink 
+      ? supportWhatsappLink.trim() 
+      : (cleanSupportPhone ? `https://wa.me/${cleanSupportPhone.replace(/[^0-9]/g, "")}` : null);
 
     const newAdmin = await prisma.user.create({
       data: {
@@ -143,6 +149,8 @@ export async function POST(req: Request) {
         email: email.toLowerCase().trim(),
         passwordHash,
         phone: phone?.trim() || null,
+        supportPhone: cleanSupportPhone || null,
+        supportWhatsappLink: cleanSupportWhatsapp,
         role: "ADMIN",
         adminCode: cleanAdminCode,
         adminStatus: "ACTIVE",
@@ -153,6 +161,8 @@ export async function POST(req: Request) {
         name: true,
         email: true,
         phone: true,
+        supportPhone: true,
+        supportWhatsappLink: true,
         role: true,
         adminCode: true,
         adminStatus: true,
@@ -183,7 +193,7 @@ export async function PUT(req: Request) {
     if (errorResponse) return errorResponse;
 
     const body = await req.json();
-    const { adminId, name, phone, adminCode, adminStatus, newPassword } = body;
+    const { adminId, name, phone, adminCode, adminStatus, newPassword, supportPhone, supportWhatsappLink } = body;
 
     if (!adminId) {
       return NextResponse.json({ error: "ID de l'administrateur requis." }, { status: 400 });
@@ -207,6 +217,20 @@ export async function PUT(req: Request) {
     const updateData: any = {};
     if (name) updateData.name = name.trim();
     if (phone !== undefined) updateData.phone = phone?.trim() || null;
+    if (supportPhone !== undefined) {
+      const cleanPhone = (supportPhone || "").trim();
+      updateData.supportPhone = cleanPhone || null;
+      if (supportWhatsappLink !== undefined) {
+        updateData.supportWhatsappLink = supportWhatsappLink ? supportWhatsappLink.trim() : null;
+      } else if (cleanPhone) {
+        updateData.supportWhatsappLink = `https://wa.me/${cleanPhone.replace(/[^0-9]/g, "")}`;
+      } else {
+        updateData.supportWhatsappLink = null;
+      }
+    } else if (supportWhatsappLink !== undefined) {
+      updateData.supportWhatsappLink = supportWhatsappLink ? supportWhatsappLink.trim() : null;
+    }
+
     if (adminStatus && ["ACTIVE", "SUSPENDED"].includes(adminStatus)) {
       updateData.adminStatus = adminStatus;
     }
@@ -235,6 +259,8 @@ export async function PUT(req: Request) {
         name: true,
         email: true,
         phone: true,
+        supportPhone: true,
+        supportWhatsappLink: true,
         role: true,
         adminCode: true,
         adminStatus: true
