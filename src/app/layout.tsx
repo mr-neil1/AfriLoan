@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import PWAUpdateHandler from "@/components/PWAUpdateHandler";
 import CustomerSupportButton from "@/components/CustomerSupportButton";
 
 export const metadata: Metadata = {
@@ -59,6 +60,9 @@ export default function RootLayout({
 
         {/* PWA Mobile Installation Prompt */}
         <PWAInstallPrompt />
+
+        {/* PWA / APK Auto-Update & Service Worker Handler */}
+        <PWAUpdateHandler />
       </body>
     </html>
   );

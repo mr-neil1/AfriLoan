@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User as UserIcon, Mail, Phone, ShieldCheck, LogOut, Smartphone, Check, Lock, KeyRound, AlertCircle, ArrowRight } from "lucide-react";
+import { User as UserIcon, Mail, Phone, ShieldCheck, LogOut, Smartphone, Check, Lock, KeyRound, AlertCircle, ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "@/lib/LanguageContext";
 import { ALL_MOBILE_OPERATORS, getMobileMoneyLogo } from "@/lib/countriesData";
@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState("");
   const [newPin, setNewPin] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Fetcher for user profile
@@ -117,6 +118,16 @@ export default function ProfilePage() {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleCheckUpdate = () => {
+    setIsCheckingUpdate(true);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("trigger-afriloan-update"));
+    }
+    setTimeout(() => {
+      setIsCheckingUpdate(false);
+    }, 2500);
   };
 
   if (isLoading) {
@@ -329,10 +340,10 @@ export default function ProfilePage() {
           <div>
             <h4 className="text-sm font-black text-white flex items-center justify-center sm:justify-start gap-1.5">
               <span>Application Mobile AfriLoan</span>
-              <span className="text-[10px] bg-emerald-500/30 text-emerald-300 font-mono px-2 py-0.5 rounded-full">PWA</span>
+              <span className="text-[10px] bg-emerald-500/30 text-emerald-300 font-mono px-2 py-0.5 rounded-full">PWA / APK</span>
             </h4>
             <p className="text-xs text-slate-300 mt-0.5">
-              Téléchargez et installez l'application sur votre écran d'accueil Android ou iOS pour un accès instantané et sécurisé.
+              Installez l'application sur votre écran d'accueil Android ou iOS pour un accès instantané et sécurisé.
             </p>
           </div>
         </div>
@@ -348,6 +359,36 @@ export default function ProfilePage() {
         >
           <Smartphone className="w-4 h-4" />
           <span>Installer l'application</span>
+        </button>
+      </div>
+
+      {/* App Version & Synchronization Card */}
+      <div className="p-4 sm:p-5 bg-white rounded-3xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3 text-center sm:text-left">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#064E29] flex items-center justify-center shrink-0">
+            <RefreshCw className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center justify-center sm:justify-start gap-2">
+              <span className="font-black text-slate-900">Version de l'application</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-[#064E29] font-mono text-[10px] font-bold">
+                v1.3.0 (Dernière version)
+              </span>
+            </div>
+            <p className="text-slate-500 text-[11px] mt-0.5">
+              Synchronisation automatique avec le serveur AfriLoan
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleCheckUpdate}
+          disabled={isCheckingUpdate}
+          className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 active:scale-[0.98] text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all min-h-[40px] cursor-pointer"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isCheckingUpdate ? "animate-spin text-emerald-600" : ""}`} />
+          <span>{isCheckingUpdate ? "Vérification..." : "Vérifier les mises à jour"}</span>
         </button>
       </div>
 

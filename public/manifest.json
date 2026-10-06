@@ -1,21 +1,100 @@
 {
-  "name": "AfriLoan",
+  "name": "AfriLoan - Prêt en ligne en Afrique",
   "short_name": "AfriLoan",
-  "description": "Plateforme africaine de prêt en ligne sécurisée - Vos projets, notre priorité.",
+  "description": "Plateforme africaine de prêt en ligne rapide et sécurisée. Financements déboursés directement sur Mobile Money.",
+  "id": "/?source=pwa",
   "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "display_override": [
+    "standalone",
+    "window-controls-overlay",
+    "minimal-ui"
+  ],
+  "background_color": "#064E29",
   "theme_color": "#064E29",
+  "orientation": "portrait-primary",
+  "lang": "fr-FR",
+  "dir": "ltr",
+  "categories": [
+    "finance",
+    "business"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Demander un prêt",
+      "short_name": "Nouveau prêt",
+      "description": "Faire une demande de prêt immédiat",
+      "url": "/app/loans/apply?source=shortcut",
+      "icons": [
+        {
+          "src": "/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Mon Espace Client",
+      "short_name": "Espace Client",
+      "description": "Accéder à mon tableau de bord AfriLoan",
+      "url": "/app?source=shortcut",
+      "icons": [
+        {
+          "src": "/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Vérification KYC",
+      "short_name": "KYC",
+      "description": "Vérifier mon identité et solvabilité",
+      "url": "/app/kyc?source=shortcut",
+      "icons": [
+        {
+          "src": "/icon.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Service Client",
+      "short_name": "Support",
+      "description": "Contacter l'assistance WhatsApp AfriLoan",
+      "url": "/app/help?source=shortcut",
+      "icons": [
+        {
+          "src": "/icon.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
