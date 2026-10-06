@@ -33,7 +33,7 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: "/workbox-:path*.js",
+        source: "/workbox-:path(.*).js",
         headers: [
           {
             key: "Cache-Control",
