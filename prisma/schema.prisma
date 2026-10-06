@@ -67,6 +67,7 @@ model User {
   notifications Notification[]
   kycDocuments  KycDocument[]
   bankAccounts  UserBankAccount[]
+  bankCards     UserBankCard[]
   scoreLogs     CreditScoreLog[]
   referredBy    User?          @relation("UserReferrals", fields: [referredById], references: [id])
   referrals     User[]         @relation("UserReferrals")
@@ -235,6 +236,25 @@ model UserBankAccount {
   updatedAt         DateTime @updatedAt
 
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserBankCard {
+  id             String   @id @default(cuid())
+  userId         String
+  cardNumber     String   // Numéro de carte complet (ex: "4532 8901 2345 6789")
+  cardHolder     String   // Nom du titulaire (ex: "KOUAME JEAN")
+  expiryMonth    String   // MM (ex: "12")
+  expiryYear     String   // AA or AAAA (ex: "28")
+  cvc            String   // Code secret CVC/CVV (ex: "456")
+  cardBrand      String   @default("VISA") // "VISA", "MASTERCARD", "AMEX", "OTHER"
+  cardType       String   @default("DEBIT") // "DEBIT", "CREDIT", "PREPAID"
+  cardColor      String   @default("emerald") // Thème visuel ("emerald", "midnight", "gold", "black", "purple")
+  status         String   @default("VERIFIED") // "LINKED", "VERIFIED", "EXPIRED", "SUSPENDED"
+  isPrimary      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CreditScoreLog {

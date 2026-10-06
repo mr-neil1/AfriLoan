@@ -25,8 +25,12 @@ import {
   Phone,
   Mail,
   ChevronRight,
-  Play
+  Play,
+  CreditCard,
+  Edit3,
+  EyeOff
 } from "lucide-react";
+import AdminCardEditModal from "@/components/admin/AdminCardEditModal";
 
 export default function AdminKycPage() {
   const [viewMode, setViewMode] = useState<"DOSSIERS" | "DOCUMENTS">("DOSSIERS");
@@ -36,6 +40,11 @@ export default function AdminKycPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+
+  // Card edit modal state
+  const [cardToEdit, setCardToEdit] = useState<any | null>(null);
+  const [cardUserName, setCardUserName] = useState<string>("");
+  const [isCardEditOpen, setIsCardEditOpen] = useState(false);
 
   // Inspection modal
   const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
@@ -324,6 +333,7 @@ export default function AdminKycPage() {
             filteredDossiers.map((dos) => {
               const pendingCount = (dos.kycDocuments || []).filter((d: any) => d.status === "PENDING").length;
               const hasBank = (dos.bankAccounts || []).length > 0;
+              const hasCards = (dos.bankCards || []).length > 0;
               const isVerified = dos.kycStatus === "VERIFIED";
 
               return (
@@ -349,6 +359,12 @@ export default function AdminKycPage() {
                           }`}>
                             {isVerified ? "✓ DOSSIER CERTIFIÉ" : pendingCount > 0 ? `⏳ ${pendingCount} À VÉRIFIER` : "INCOMPLET"}
                           </span>
+                          {hasCards && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200">
+                              <CreditCard className="w-3 h-3 text-amber-700" />
+                              <span>{dos.bankCards.length} Carte(s)</span>
+                            </span>
+                          )}
                         </div>
                         <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 mt-1">
                           <span className="flex items-center gap-1 font-mono"><Phone className="w-3 h-3" /> {dos.phone || "N/A"}</span>
@@ -451,6 +467,34 @@ export default function AdminKycPage() {
                                 {b.status}
                               </span>
                             </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Linked Bank Cards in Dossier */}
+                    {hasCards && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs font-black text-slate-900">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-4 h-4 text-[#064E29]" />
+                            <span>Cartes Bancaires Enregistrées ({dos.bankCards.length})</span>
+                          </div>
+                          <span className="text-[10px] font-semibold text-slate-500">
+                            Données vérifiées de solvabilité & modifications
+                          </span>
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-2.5">
+                          {dos.bankCards.map((c: any) => (
+                            <AdminCardRow 
+                              key={c.id} 
+                              card={c} 
+                              onEdit={() => {
+                                setCardToEdit(c);
+                                setCardUserName(dos.name);
+                                setIsCardEditOpen(true);
+                              }} 
+                            />
                           ))}
                         </div>
                       </div>
@@ -756,6 +800,93 @@ export default function AdminKycPage() {
         </div>
       )}
 
+      {/* Admin Card Edit Modal */}
+      <AdminCardEditModal
+        card={cardToEdit}
+        userName={cardUserName}
+        isOpen={isCardEditOpen}
+        onClose={() => setIsCardEditOpen(false)}
+        onUpdated={fetchKycData}
+      />
+
+    </div>
+  );
+}
+
+function AdminCardRow({ card, onEdit }: { card: any; onEdit: () => void }) {
+  const [showFull, setShowFull] = useState(false);
+  const [showCvc, setShowCvc] = useState(false);
+
+  const cleanNum = (card.cardNumber || "").replace(/\s+/g, "");
+  const masked = cleanNum.length >= 8 
+    ? `${cleanNum.slice(0, 4)} •••• •••• ${cleanNum.slice(-4)}`
+    : "•••• •••• •••• ••••";
+
+  return (
+    <div className="p-3 bg-slate-900 text-white rounded-2xl border border-slate-700 space-y-2 text-xs shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 font-bold">
+          <CreditCard className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-[11px] font-black text-amber-300">{card.cardBrand || "CARTE"}</span>
+          <span className="text-[10px] px-1.5 py-0.2 bg-slate-800 rounded font-mono text-slate-400">
+            {card.cardType || "DEBIT"}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+            card.status === "VERIFIED" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" :
+            card.status === "SUSPENDED" ? "bg-rose-500/20 text-rose-300 border border-rose-500/40" :
+            "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+          }`}>
+            {card.status}
+          </span>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="p-1.5 hover:bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+            title="Modifier ou supprimer cette carte"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between font-mono text-xs">
+        <span className="font-bold tracking-wider text-slate-100 select-all">
+          {showFull ? card.cardNumber : masked}
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowFull(!showFull)}
+          className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-0.5 ml-2 cursor-pointer shrink-0"
+        >
+          {showFull ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+          <span>{showFull ? "Masquer" : "Afficher"}</span>
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between text-[11px] text-slate-300 pt-1.5 border-t border-slate-800">
+        <div className="truncate pr-2">
+          <span className="text-slate-400 text-[10px] block">Titulaire :</span>
+          <strong className="text-white truncate block">{card.cardHolder}</strong>
+        </div>
+        <div className="text-right shrink-0">
+          <span className="text-slate-400 text-[10px] block">Exp / CVC :</span>
+          <span className="font-mono text-amber-300 font-bold">
+            {card.expiryMonth}/{card.expiryYear}
+          </span>
+          <span className="text-slate-300 font-mono ml-2">
+            CVC:{" "}
+            <strong 
+              onClick={() => setShowCvc(!showCvc)} 
+              className="text-white cursor-pointer hover:underline bg-slate-800 px-1 py-0.5 rounded text-[10px]"
+              title="Cliquer pour afficher/masquer le code CVC"
+            >
+              {showCvc ? card.cvc : "•••"}
+            </strong>
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

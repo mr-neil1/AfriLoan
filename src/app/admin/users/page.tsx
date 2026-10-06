@@ -18,7 +18,8 @@ import {
   Mail,
   UserCheck,
   AlertCircle,
-  Smartphone
+  Smartphone,
+  CreditCard
 } from "lucide-react";
 import AdminPinModal from "@/components/admin/AdminPinModal";
 import { ALL_MOBILE_OPERATORS, getMobileMoneyLogo } from "@/lib/countriesData";
@@ -195,7 +196,7 @@ export default function AdminUsersPage() {
                   <th className="p-4">Score Solvabilité</th>
                   <th className="p-4">Plafond Crédit</th>
                   <th className="p-4">Statut KYC</th>
-                  <th className="p-4">Banques Liées</th>
+                  <th className="p-4">Banques & Cartes</th>
                   <th className="p-4">Rôle</th>
                   <th className="p-4 text-right">Actions 360°</th>
                 </tr>
@@ -260,12 +261,23 @@ export default function AdminUsersPage() {
                           {u.kycStatus}
                         </span>
                       </td>
-                      <td className="p-4 font-semibold text-slate-800">
-                        {u.bankAccounts?.length > 0 ? (
-                          <span className="text-emerald-800 font-bold">{u.bankAccounts[0].bankName}</span>
-                        ) : (
-                          <span className="text-slate-400">Aucune</span>
-                        )}
+                      <td className="p-4">
+                        <div className="space-y-1">
+                          {u.bankAccounts?.length > 0 ? (
+                            <div className="font-bold text-emerald-800 text-xs flex items-center gap-1">
+                              <Building2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <span className="truncate max-w-[130px]">{u.bankAccounts[0].bankName}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-[11px] block">Aucune banque</span>
+                          )}
+                          {u.bankCards?.length > 0 ? (
+                            <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-indigo-50 border border-indigo-200/80 text-indigo-900 text-[10px] font-black">
+                              <CreditCard className="w-2.5 h-2.5 text-indigo-600 shrink-0" />
+                              <span>{u.bankCards.length} carte{u.bankCards.length > 1 ? "s" : ""}</span>
+                            </div>
+                          ) : null}
+                        </div>
                       </td>
                       <td className="p-4">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
@@ -632,6 +644,68 @@ export default function AdminUsersPage() {
                       onChange={(e) => setEditFormData({ ...editFormData, emergencyContactPhone: e.target.value })}
                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Moyens Bancaires & Cartes Liées */}
+              <div className="space-y-3 p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4 text-emerald-700" />
+                    <span>Moyens Bancaires Certifiés ({selectedUser.bankAccounts?.length || 0} comptes, {selectedUser.bankCards?.length || 0} cartes)</span>
+                  </h4>
+                  <a
+                    href="/admin/kyc"
+                    className="text-[11px] font-bold text-emerald-800 hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>Dossier KYC</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-3 pt-1">
+                  {/* Bank Accounts */}
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Comptes bancaires</p>
+                    {selectedUser.bankAccounts?.length > 0 ? (
+                      selectedUser.bankAccounts.map((b: any) => (
+                        <div key={b.id} className="p-2.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                          <div>
+                            <div className="font-black text-slate-900">{b.bankName}</div>
+                            <div className="font-mono text-[11px] text-slate-500">{b.accountNumber}</div>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+                            b.status === "VERIFIED" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                          }`}>{b.status}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">Aucun compte bancaire enregistré</p>
+                    )}
+                  </div>
+
+                  {/* Bank Cards */}
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cartes bancaires (Visa / Mastercard)</p>
+                    {selectedUser.bankCards?.length > 0 ? (
+                      selectedUser.bankCards.map((c: any) => (
+                        <div key={c.id} className="p-2.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                          <div>
+                            <div className="font-black text-slate-900 flex items-center gap-1.5">
+                              <span>{c.cardBrand || "CARTE"}</span>
+                              <span className="font-mono text-[11px] text-slate-500">{c.cardNumber}</span>
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-semibold">{c.cardHolder} • Exp {c.expiryMonth}/{c.expiryYear}</div>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+                            c.status === "VERIFIED" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                          }`}>{c.status}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-slate-400 italic">Aucune carte bancaire enregistrée</p>
+                    )}
                   </div>
                 </div>
               </div>

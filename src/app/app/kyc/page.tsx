@@ -16,10 +16,12 @@ import {
   Lock,
   ExternalLink,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  CreditCard
 } from "lucide-react";
 import CameraCaptureModal from "@/components/kyc/CameraCaptureModal";
 import BankLinkModal from "@/components/banks/BankLinkModal";
+import CardLinkModal from "@/components/cards/CardLinkModal";
 import HomeLocationPicker from "@/components/location/HomeLocationPicker";
 import CreditScoreWidget from "@/components/kyc/CreditScoreWidget";
 
@@ -27,6 +29,7 @@ export default function KycVerificationPage() {
   const [user, setUser] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [cards, setCards] = useState<any[]>([]);
   const [scoreBreakdown, setScoreBreakdown] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,6 +37,7 @@ export default function KycVerificationPage() {
   const [cameraModalOpen, setCameraModalOpen] = useState(false);
   const [activeDocType, setActiveDocType] = useState<"CNI_RECTO" | "CNI_VERSO" | "SELFIE_PHOTO" | "KYC_VIDEO" | "PASSPORT">("CNI_RECTO");
   const [bankModalOpen, setBankModalOpen] = useState(false);
+  const [cardModalOpen, setCardModalOpen] = useState(false);
 
   // Profile employment & emergency form states
   const [profession, setProfession] = useState("");
@@ -56,10 +60,11 @@ export default function KycVerificationPage() {
         return;
       }
 
-      const [meRes, kycRes, bankRes] = await Promise.all([
+      const [meRes, kycRes, bankRes, cardRes] = await Promise.all([
         fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } }),
         fetch("/api/kyc", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/banks", { headers: { Authorization: `Bearer ${token}` } })
+        fetch("/api/banks", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/cards", { headers: { Authorization: `Bearer ${token}` } })
       ]);
 
       if (meRes.ok) {
@@ -76,16 +81,38 @@ export default function KycVerificationPage() {
         const kycData = await kycRes.json();
         setDocuments(kycData.documents || []);
         setScoreBreakdown(kycData.breakdown || null);
+        if (kycData.cards) {
+          setCards(kycData.cards);
+        }
       }
 
       if (bankRes.ok) {
         const bankData = await bankRes.json();
         setBankAccounts(bankData.accounts || []);
       }
+
+      if (cardRes.ok) {
+        const cardData = await cardRes.json();
+        setCards(cardData.cards || []);
+      }
     } catch (e) {
       // ignore
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    if (!confirm("Voulez-vous vraiment supprimer cette carte bancaire ?")) return;
+    try {
+      const token = localStorage.getItem("afriloan_token");
+      await fetch(`/api/cards?id=${cardId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchKycData();
+    } catch (err) {
+      // ignore
     }
   };
 
@@ -222,6 +249,7 @@ export default function KycVerificationPage() {
           if (actionId === "SELFIE_PHOTO") handleOpenCapture("SELFIE_PHOTO");
           if (actionId === "KYC_VIDEO") handleOpenCapture("KYC_VIDEO");
           if (actionId === "BANK_ACCOUNT") setBankModalOpen(true);
+          if (actionId === "BANK_CARD") setCardModalOpen(true);
         }}
       />
 
@@ -425,78 +453,233 @@ export default function KycVerificationPage() {
         onLocationSaved={fetchKycData}
       />
 
-      {/* SECTION 3: Linked Bank Accounts */}
-      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-5">
+      {/* SECTION 3: Linked Bank Accounts & Credit/Debit Cards */}
+      <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-sm sm:text-base font-black text-slate-900">
-              2. Compte Bancaire Lié & Connexion Directe
+              2. Moyens Bancaires Certifiés : Comptes & Cartes Bancaires
             </h3>
             <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-              Associez votre compte bancaire (Afriland First Bank, SGCI, Rawbank, BGFIBank...) pour sécuriser vos remboursements (+150 pts).
+              Associez vos comptes bancaires et vos cartes (Visa, Mastercard) pour débloquer un score maximal et certifier votre solvabilité.
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setBankModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#064E29] hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-sm shrink-0 w-full sm:w-auto transition-transform active:scale-95 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Lier une banque</span>
-          </button>
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setBankModalOpen(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer min-h-[42px]"
+            >
+              <Building2 className="w-4 h-4 text-[#064E29]" />
+              <span>Lier une banque (+150 pts)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCardModalOpen(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-gradient-to-r from-[#064E29] to-[#0A5C36] hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-sm transition-transform active:scale-95 cursor-pointer min-h-[42px]"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>Ajouter une carte (+100 pts)</span>
+            </button>
+          </div>
         </div>
 
-        {bankAccounts.length === 0 ? (
-          <div className="p-6 sm:p-8 border-2 border-dashed border-slate-200 rounded-2xl text-center space-y-2">
-            <Building2 className="w-10 h-10 text-slate-300 mx-auto" />
-            <p className="text-xs font-bold text-slate-700">Aucun compte bancaire lié pour le moment</p>
-            <p className="text-[11px] text-slate-400">
-              La liaison d'une banque partenaire augmente instantanément votre score de <strong>+150 points</strong>.
-            </p>
+        {/* SUBSECTION: Cartes Bancaires */}
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-black text-slate-900">
+              <CreditCard className="w-4 h-4 text-[#064E29]" />
+              <span>Cartes Bancaires Enregistrées ({cards.length})</span>
+            </div>
+            <span className="text-[11px] text-slate-500 font-medium">
+              Visa, Mastercard, Amex
+            </span>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
-            {bankAccounts.map((acc) => (
-              <div 
-                key={acc.id}
-                className="p-4 sm:p-5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 to-teal-50/40 space-y-3 relative"
-              >
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className="text-xs font-black text-[#064E29] truncate">{acc.bankName}</span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
-                    Connecté & Sécurisé
-                  </span>
-                </div>
 
-                <div className="text-xs space-y-1">
-                  <div className="text-slate-600 font-semibold break-all">
-                    N° de compte : <span className="font-mono font-bold text-slate-900">{acc.accountNumber}</span>
-                  </div>
-                  {acc.accountHolder && (
-                    <div className="text-slate-500 text-[11px] truncate">
-                      Titulaire : <span className="font-medium text-slate-700">{acc.accountHolder}</span>
-                    </div>
-                  )}
-                  <div className="text-slate-500 text-[11px] flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-emerald-700 shrink-0" />
-                    <span className="truncate">Accès : {acc.maskedPassword}</span>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end">
-                  <button
-                    onClick={() => handleDeleteBank(acc.id)}
-                    className="text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 p-1 cursor-pointer transition-colors"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Délier</span>
-                  </button>
-                </div>
+          {cards.length === 0 ? (
+            <div className="p-5 sm:p-6 border-2 border-dashed border-slate-200 rounded-2xl text-center space-y-2.5 bg-slate-50/50">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#064E29] flex items-center justify-center mx-auto">
+                <CreditCard className="w-5 h-5" />
               </div>
-            ))}
+              <div>
+                <p className="text-xs font-bold text-slate-700">Aucune carte bancaire enregistrée</p>
+                <p className="text-[11px] text-slate-400 max-w-sm mx-auto mt-0.5">
+                  L'ajout d'une carte bancaire valide augmente instantanément votre score de <strong>+100 points</strong> et certifie vos remboursements.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCardModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#064E29] hover:opacity-90 text-white font-bold text-xs rounded-xl shadow-sm cursor-pointer transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ajouter une carte bancaire maintenant</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+              {cards.map((card) => {
+                const isVisa = card.cardBrand === "VISA";
+                const isMastercard = card.cardBrand === "MASTERCARD";
+                const isAmex = card.cardBrand === "AMEX";
+
+                return (
+                  <div
+                    key={card.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-gradient-to-tr from-slate-950 via-[#072d19] to-slate-900 text-white border border-emerald-500/40 shadow-lg relative flex flex-col justify-between space-y-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      {/* Chip & Brand */}
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-6 rounded-md bg-gradient-to-br from-amber-300 to-amber-500 border border-yellow-300 shadow-xs flex items-center justify-center">
+                          <div className="w-full h-full border border-yellow-600/40 rounded-xs"></div>
+                        </div>
+                        <span className="text-[10px] font-mono tracking-wider uppercase text-emerald-300 font-bold">
+                          {card.cardType || "DEBIT"}
+                        </span>
+                      </div>
+
+                      <div className="text-right">
+                        {isVisa ? (
+                          <span className="font-black text-lg italic tracking-wider text-white drop-shadow">VISA</span>
+                        ) : isMastercard ? (
+                          <div className="flex items-center -space-x-2">
+                            <div className="w-5 h-5 rounded-full bg-rose-600"></div>
+                            <div className="w-5 h-5 rounded-full bg-amber-400"></div>
+                          </div>
+                        ) : isAmex ? (
+                          <span className="text-xs font-black px-1.5 py-0.5 bg-white text-blue-900 rounded font-mono">AMEX</span>
+                        ) : (
+                          <span className="text-xs font-black uppercase text-slate-300 font-mono">CARD</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Card Number */}
+                    <div className="py-1">
+                      <p className="font-mono text-sm sm:text-base font-bold tracking-[0.2em] text-white">
+                        {card.maskedNumber}
+                      </p>
+                    </div>
+
+                    {/* Cardholder & Expiry */}
+                    <div className="flex items-end justify-between text-xs pt-1 border-t border-white/10">
+                      <div className="min-w-0 flex-1 pr-2">
+                        <span className="text-[8px] uppercase tracking-wider text-slate-400 block font-semibold">Titulaire</span>
+                        <p className="font-mono font-bold uppercase truncate text-[11px] text-slate-200">
+                          {card.cardHolder}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-[8px] uppercase tracking-wider text-slate-400 block font-semibold">Expire</span>
+                        <p className="font-mono font-bold text-xs text-amber-300">
+                          {card.expiryMonth}/{card.expiryYear}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="pt-2 flex items-center justify-between border-t border-white/10">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Certifiée & Active
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCard(card.id)}
+                        className="text-[11px] font-bold text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Supprimer</span>
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* SUBSECTION: Comptes Bancaires */}
+        <div className="space-y-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-black text-slate-900">
+              <Building2 className="w-4 h-4 text-[#064E29]" />
+              <span>Comptes Bancaires Nationaux Liés ({bankAccounts.length})</span>
+            </div>
+            <span className="text-[11px] text-slate-500 font-medium">
+              RIB / E-Banking
+            </span>
           </div>
-        )}
+
+          {bankAccounts.length === 0 ? (
+            <div className="p-5 sm:p-6 border-2 border-dashed border-slate-200 rounded-2xl text-center space-y-2.5 bg-slate-50/50">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#064E29] flex items-center justify-center mx-auto">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-700">Aucun compte bancaire lié pour le moment</p>
+                <p className="text-[11px] text-slate-400 max-w-sm mx-auto mt-0.5">
+                  La liaison d'un compte bancaire partenaire augmente instantanément votre score de <strong>+150 points</strong>.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBankModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl shadow-xs cursor-pointer transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Lier un compte bancaire</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
+              {bankAccounts.map((acc) => (
+                <div 
+                  key={acc.id}
+                  className="p-4 sm:p-5 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 to-teal-50/40 space-y-3 relative"
+                >
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs font-black text-[#064E29] truncate">{acc.bankName}</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+                      Connecté & Sécurisé
+                    </span>
+                  </div>
+
+                  <div className="text-xs space-y-1">
+                    <div className="text-slate-600 font-semibold break-all">
+                      N° de compte : <span className="font-mono font-bold text-slate-900">{acc.accountNumber}</span>
+                    </div>
+                    {acc.accountHolder && (
+                      <div className="text-slate-500 text-[11px] truncate">
+                        Titulaire : <span className="font-medium text-slate-700">{acc.accountHolder}</span>
+                      </div>
+                    )}
+                    <div className="text-slate-500 text-[11px] flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-emerald-700 shrink-0" />
+                      <span className="truncate">Accès : {acc.maskedPassword}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      onClick={() => handleDeleteBank(acc.id)}
+                      className="text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 p-1 cursor-pointer transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Délier</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* SECTION 4: Professional & Emergency Contact */}
@@ -611,6 +794,12 @@ export default function KycVerificationPage() {
         onClose={() => setBankModalOpen(false)}
         userCountryCode={user?.countryCode || "CI"}
         onBankLinked={() => fetchKycData()}
+      />
+
+      <CardLinkModal
+        isOpen={cardModalOpen}
+        onClose={() => setCardModalOpen(false)}
+        onCardLinked={() => fetchKycData()}
       />
 
     </div>

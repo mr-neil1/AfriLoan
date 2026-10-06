@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
 
-    const [user, documents, bankAccounts, repaidLoansCount] = await Promise.all([
+    const [user, documents, bankAccounts, bankCards, repaidLoansCount] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -54,6 +54,10 @@ export async function GET(req: Request) {
       prisma.userBankAccount.findMany({
         where: { userId }
       }),
+      prisma.userBankCard.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" }
+      }),
       prisma.loan.count({
         where: { userId, status: "REPAID" }
       })
@@ -63,12 +67,32 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Utilisateur non trouvé" }, { status: 404 });
     }
 
-    const breakdown = evaluateUserCriteria(user, documents, bankAccounts, repaidLoansCount);
+    const breakdown = evaluateUserCriteria(user, documents, bankAccounts, repaidLoansCount, bankCards);
+
+    const clientCards = bankCards.map(c => {
+      const cleanNum = c.cardNumber.replace(/\s+/g, "");
+      return {
+        id: c.id,
+        maskedNumber: `${cleanNum.slice(0, 4)} •••• •••• ${cleanNum.slice(-4)}`,
+        last4: cleanNum.slice(-4),
+        cardHolder: c.cardHolder,
+        expiryMonth: c.expiryMonth,
+        expiryYear: c.expiryYear,
+        cardBrand: c.cardBrand,
+        cardType: c.cardType,
+        cardColor: c.cardColor,
+        status: c.status,
+        isPrimary: c.isPrimary,
+        createdAt: c.createdAt
+      };
+    });
 
     return NextResponse.json({
       success: true,
       kycStatus: user.kycStatus,
       documents,
+      bankAccounts,
+      cards: clientCards,
       breakdown
     }, { status: 200 });
 

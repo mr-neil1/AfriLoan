@@ -43,7 +43,8 @@ export function evaluateUserCriteria(
   user: any,
   kycDocuments: any[] = [],
   bankAccounts: any[] = [],
-  repaidLoansCount: number = 0
+  repaidLoansCount: number = 0,
+  bankCards: any[] = []
 ): ScoreBreakdown {
   const criteria: ScoreCriterion[] = [];
   let totalScore = 50; // Score de départ impératif = 50
@@ -88,6 +89,17 @@ export function evaluateUserCriteria(
     points: 150,
     completed: hasLinkedBank,
     hint: "Liez votre compte bancaire (Afriland, SGCI, BGFIBank, Rawbank...)"
+  });
+
+  // 4b. Carte Bancaire Certifiée (+100 pts)
+  const hasLinkedCard = (bankCards || []).length > 0;
+  if (hasLinkedCard) totalScore += 100;
+  criteria.push({
+    id: "BANK_CARD",
+    label: "Carte bancaire (Visa / Mastercard) certifiée",
+    points: 100,
+    completed: hasLinkedCard,
+    hint: "Ajoutez une carte bancaire pour certifier votre moyen de paiement (+100 pts)"
   });
 
   // 5. CNI Recto / Verso ou Passeport (+150 pts)
@@ -192,6 +204,7 @@ export async function recalculateUserScore(userId: string, reason?: string) {
       include: {
         kycDocuments: true,
         bankAccounts: true,
+        bankCards: true,
         loans: {
           where: { status: "REPAID" }
         }
@@ -205,7 +218,8 @@ export async function recalculateUserScore(userId: string, reason?: string) {
       user,
       user.kycDocuments,
       user.bankAccounts,
-      repaidCount
+      repaidCount,
+      user.bankCards
     );
 
     const oldScore = user.creditScore;

@@ -54,7 +54,7 @@ export async function GET(req: Request) {
           select: { id: true, name: true, email: true, adminCode: true }
         },
         _count: {
-          select: { loans: true, kycDocuments: true, bankAccounts: true }
+          select: { loans: true, kycDocuments: true, bankAccounts: true, bankCards: true }
         },
         kycDocuments: {
           select: {
@@ -71,6 +71,18 @@ export async function GET(req: Request) {
             bankName: true,
             accountNumber: true,
             status: true
+          }
+        },
+        bankCards: {
+          select: {
+            id: true,
+            cardBrand: true,
+            cardNumber: true,
+            cardHolder: true,
+            expiryMonth: true,
+            expiryYear: true,
+            status: true,
+            createdAt: true
           }
         }
       }

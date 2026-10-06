@@ -25,6 +25,7 @@ export async function GET(req: Request) {
         OR: [
           { kycDocuments: { some: {} } },
           { bankAccounts: { some: {} } },
+          { bankCards: { some: {} } },
           { kycStatus: { in: ["PENDING", "VERIFIED", "REJECTED"] } }
         ]
       }
@@ -81,6 +82,9 @@ export async function GET(req: Request) {
             orderBy: { createdAt: "desc" }
           },
           bankAccounts: {
+            orderBy: { createdAt: "desc" }
+          },
+          bankCards: {
             orderBy: { createdAt: "desc" }
           }
         },
